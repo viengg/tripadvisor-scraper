@@ -1,10 +1,10 @@
 from bs4 import BeautifulSoup
 import requests
 
-#A partir de uma tag com a classe "listing_title", entra na pagina do hotel em questão
-#e retorna seu nome, enderço e tipo, se for fácil de determinar e a quantidade de quartos, se houver
-def get_data(entry):
-    entry_html = 'https://www.tripadvisor.com.br/' + entry.find('a')['href']
+#A partir de um link de hotel, entra na pagina do hotel em questão
+#e retorna seu nome, enderço, tipo e quantidade de quartos
+def get_data(entry_link):
+    entry_html = 'https://www.tripadvisor.com.br/' + entry_link
     r = requests.get(entry_html)
     soup = BeautifulSoup(r.text, 'html.parser')
     nome = soup.find(id="HEADING").string.strip()
@@ -22,21 +22,23 @@ def get_data(entry):
     else:
         tipo = "indef"
     
-    return [nome, endereco, tipo, qtd_quartos]
+    data = [nome, endereco, tipo, qtd_quartos]
+    print(data)
+    return data 
 
 #Faz o parsing da página HTML que contém as listagens dos hotéis e retorna uma lista
-#de divs da classe "listing_title"
+#de links dos hotéis
 def parse_page(url):
     r = requests.get(url)
     html = r.text
     soup = BeautifulSoup(html, 'html.parser')
     listing_entries = soup.findAll(attrs={'data-ttpn': 'Hotels_MainList'})
-    listing_titles = []
+    titles_links = []
     for entry in listing_entries:
-        title = entry.find(class_='listing_title')
-        listing_titles.append(title)
+        title_link = entry.find(class_='listing_title').find('a')['href']
+        titles_links.append(title_link)
 
-    return listing_titles
+    return titles_links
 
 #Gera, a partir de uma url inicial, as URLS correspondentes ao avançar uma página na
 #listagem
@@ -54,6 +56,7 @@ def get_page_urls(initial_url, num_pages):
 
     return urls
 
+#Escreve os dados coletados (lista de listas) em um arquivo .csv
 def write_to_file(filename, header, data):
     with open(filename, "w") as f:
         header_buffer = ",".join(header) + "\n"
@@ -62,14 +65,18 @@ def write_to_file(filename, header, data):
             buffer = ",".join(instance)
             f.write(buffer+"\n")
 
-initial_url = 'https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'
-page_urls = get_page_urls(initial_url, 3)
+#Coleta dados dos hotéis a partir da URL inicial das listagens
+def coleta_hoteis(initial_url='https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'):
+    page_urls = get_page_urls(initial_url, 3)
 
-data = []
-for url in page_urls:
-    listing_titles = parse_page(url)
-    d = list(map(get_data, listing_titles))
-    data = data + d
+    data = []
+    for url in page_urls:
+        listing_titles = parse_page(url)
+        d = list(map(get_data, listing_titles))
+        data = data + d
 
-write_to_file("hoteis.csv",["nome", "endereço", "tipo", "qtd_quartos"], data)
-print(len(data))
+    write_to_file("hoteis.csv",["nome", "endereço", "tipo", "qtd_quartos"], data)
+    print(f'{len(data)} hotéis coletados')
+
+if __name__ == "__main__":
+    coleta_hoteis()
