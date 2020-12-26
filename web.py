@@ -28,7 +28,7 @@ def get_data(entry_link):
 
 #Faz o parsing da página HTML que contém as listagens dos hotéis e retorna uma lista
 #de links dos hotéis
-def parse_page(url):
+def get_hotel_links(url):
     r = requests.get(url)
     html = r.text
     soup = BeautifulSoup(html, 'html.parser')
@@ -71,8 +71,8 @@ def coleta_hoteis(initial_url='https://www.tripadvisor.com.br/Hotels-g303389-Our
 
     data = []
     for url in page_urls:
-        listing_titles = parse_page(url)
-        d = list(map(get_data, listing_titles))
+        hotel_links = get_hotel_links(url)
+        d = list(map(get_data, hotel_links))
         data = data + d
     return data
 
