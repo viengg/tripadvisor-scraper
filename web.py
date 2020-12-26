@@ -40,7 +40,7 @@ def parse_page(url):
 
     return titles_links
 
-#Gera, a partir de uma url inicial, as URLS correspondentes ao avançar uma página na
+#Gera, a partir de uma URl inicial, as URLS correspondentes ao avançar uma página na
 #listagem
 def get_page_urls(initial_url, num_pages):
     urls=[initial_url]
@@ -65,7 +65,7 @@ def write_to_file(filename, header, data):
             buffer = ",".join(instance)
             f.write(buffer+"\n")
 
-#Coleta dados dos hotéis a partir da URL inicial das listagens
+#Coleta e retorna os dados (lista de listas) dos hotéis a partir da URL inicial das listagens
 def coleta_hoteis(initial_url='https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'):
     page_urls = get_page_urls(initial_url, 3)
 
@@ -74,9 +74,9 @@ def coleta_hoteis(initial_url='https://www.tripadvisor.com.br/Hotels-g303389-Our
         listing_titles = parse_page(url)
         d = list(map(get_data, listing_titles))
         data = data + d
-
-    write_to_file("hoteis.csv",["nome", "endereço", "tipo", "qtd_quartos"], data)
-    print(f'{len(data)} hotéis coletados')
+    return data
 
 if __name__ == "__main__":
-    coleta_hoteis()
+    data = coleta_hoteis()
+    write_to_file("hoteis.csv",["nome", "endereço", "tipo", "qtd_quartos"], data)
+    print(f'{len(data)} hotéis coletados')
