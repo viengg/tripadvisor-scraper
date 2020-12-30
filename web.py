@@ -22,7 +22,7 @@ def get_data(entry_link):
     else:
         tipo = "indef"
     
-    data = [nome, endereco, tipo, qtd_quartos]
+    data = [nome, endereco, tipo, qtd_quartos, entry_html]
     print(data)
     return data 
 
@@ -78,5 +78,5 @@ def coleta_hoteis(initial_url='https://www.tripadvisor.com.br/Hotels-g303389-Our
 
 if __name__ == "__main__":
     data = coleta_hoteis()
-    write_to_file("hoteis.csv",["nome", "endereço", "tipo", "qtd_quartos"], data)
+    write_to_file("hoteis.csv",["nome", "endereço", "tipo", "qtd_quartos", "fonte"], data)
     print(f'{len(data)} hotéis coletados')
