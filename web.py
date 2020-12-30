@@ -10,21 +10,20 @@ def get_data(entry_link):
     nome = soup.find(id="HEADING").string.strip()
     endereco = soup.find(class_='_3ErVArsu').string.replace(","," |")
     qtd_quartos = soup.find(attrs={'class':'_2t2gK1hs', 'data-tab':'TABS_ABOUT'}).findAll(class_="_1NHwuRzF")[-1].string
-
     if qtd_quartos is None:
         qtd_quartos = "indef"
-    if "Pousada" in nome:
-        tipo = "Pousada"
-    elif "Hotel" in nome:
-        tipo = "Hotel"
-    elif "Hostel" in nome:
-        tipo = "Hostel"
-    else:
-        tipo = "indef"
+    tipo = get_type_by_name(nome, ['Hotel', 'Pousada', 'Hostel'])
     
     data = [nome, endereco, tipo, qtd_quartos, entry_html]
     print(data)
     return data 
+
+#Infere o tipo a partir do nome do hotel
+def get_type_by_name(name, possible_types):
+    for tipo in possible_types:
+        if tipo in name:
+            return tipo
+    return "indef"
 
 #Faz o parsing da página HTML que contém as listagens dos hotéis e retorna uma lista
 #de links dos hotéis
