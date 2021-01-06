@@ -3,18 +3,29 @@ import requests
 
 #A partir de um link de hotel, entra na pagina do hotel em questão
 #e retorna seu nome, enderço, tipo e quantidade de quartos
-def get_data(entry_link):
-    entry_html = 'https://www.tripadvisor.com.br/' + entry_link
-    r = requests.get(entry_html)
+def get_data_hotel(entry_link):
+    entry_url = 'https://www.tripadvisor.com.br/' + entry_link
+    r = requests.get(entry_url)
     soup = BeautifulSoup(r.text, 'html.parser')
     nome = soup.find(id="HEADING").string.strip()
     endereco = soup.find(class_='_3ErVArsu').string.replace(","," |")
+    #preco = soup.find("div", class_="CEf5oHnZ").string.split()[-1]
+    qtd_avaliacoes = soup.find("span", class_='_33O9dg0j').string.split()[0]
+    nota = soup.find("span", class_="_3cjYfwwQ").string.replace(",", ".")
+    nota_pedestres = soup.find("span", class_="oPMurIUj _1iwDIdby").string
+    restaurantes_perto = soup.find("span", class_="oPMurIUj TrfXbt7b").string
+    atracoes_perto = soup.find("span", class_="oPMurIUj _1WE0iyL_").string
+    try:
+        categoria = soup.find("svg", class_="_2aZlo29m")['title'].split()[0].replace(",", ".")
+    except:
+        categoria = "indef"
     qtd_quartos = soup.find(attrs={'class':'_2t2gK1hs', 'data-tab':'TABS_ABOUT'}).findAll(class_="_1NHwuRzF")[-1].string
     if qtd_quartos is None:
         qtd_quartos = "indef"
     tipo = get_type_by_name(nome, ['Hotel', 'Pousada', 'Hostel'])
     
-    data = [nome, endereco, tipo, qtd_quartos, entry_html]
+    data = [nome, endereco, tipo, qtd_quartos, qtd_avaliacoes, nota, categoria, nota_pedestres, 
+            restaurantes_perto, atracoes_perto, entry_url]
     print(data)
     return data 
 
@@ -69,13 +80,16 @@ def coleta_hoteis(initial_url='https://www.tripadvisor.com.br/Hotels-g303389-Our
     page_urls = get_page_urls(initial_url, 3)
 
     data = []
+    #Seria bom utilizar multiprocessamento aqui
     for url in page_urls:
         hotel_links = get_hotel_links(url)
-        d = list(map(get_data, hotel_links))
+        d = list(map(get_data_hotel, hotel_links))
         data = data + d
     return data
 
 if __name__ == "__main__":
+    headers_hotel = ["nome", "endereço", "tipo", "qtd_quartos", "qtd_avaliacoes", "nota", "categoria", 
+                "nota_pedesrtres", "restaurantes_perto", "atracoes_perto", "fonte"]
     data = coleta_hoteis()
-    write_to_file("hoteis.csv",["nome", "endereço", "tipo", "qtd_quartos", "fonte"], data)
+    write_to_file("hoteis.csv", headers_hotel, data)
     print(f'{len(data)} hotéis coletados')
