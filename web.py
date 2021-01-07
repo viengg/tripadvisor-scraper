@@ -67,9 +67,9 @@ def get_data_restaurant(entry_link):
     entry_url = 'https://www.tripadvisor.com.br/' + entry_link
     r = requests.get(entry_url)
     soup = BeautifulSoup(r.text, 'html.parser')
-    nome = soup.find('h1', {'data-test-target':'top-info-header'}).string
+    nome = soup.find('h1', {'data-test-target':'top-info-header'}).string.replace(',', ' |')
     try:
-        endereco = soup.find('a', {'class' : '_15QfMZ2L', 'href': '#MAPVIEW'}).string.replace(',',' |')
+        endereco = soup.find('a', {'class' : '_15QfMZ2L', 'href': '#MAPVIEW'}).string.strip().replace(',',' |')
     except:
         endereco = 'indef'
     try:
@@ -81,13 +81,6 @@ def get_data_restaurant(entry_link):
     except:
         nota = 'indef'
     try:
-        faixa_preco = soup.find('div', class_='_1XLfiSsv').string.split('-')
-        preco_min = faixa_preco[0].split()[1]
-        preco_max = faixa_preco[1].split()[1]
-    except:
-        preco_min = 'indef'
-        preco_max = 'indef'
-    try:
         restaurant_id = entry_link.split('-')[2][1:]
         api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/restaurant/{}'.format(restaurant_id)
         api_json = requests.get(api_url).json()
@@ -98,10 +91,42 @@ def get_data_restaurant(entry_link):
         lat = 'indef'
         lon = 'indef'
     
-    data = [nome, endereco, nota, avaliacoes, preco_min, preco_max, lat, lon, entry_url]
+    data = [nome, endereco, nota, avaliacoes, lat, lon, entry_url]
     print(data)
     return data
+
+def get_data_atracao(entry_link):
+    entry_url = 'https://www.tripadvisor.com.br/' + entry_link
+    r = requests.get(entry_url)
+    soup = BeautifulSoup(r.text, 'html.parser')
+    nome = soup.find('h1', id='HEADING').string.strip()
+    try:
+        endereco = soup.find('div', class_='LjCWTZdN').findAll('span')[1].string.replace(',', ' |')
+    except:
+        endereco = 'indef'
+    try:
+        avaliacoes = soup.find('span', class_='_3WF_jKL7 _1uXQPaAr').string.split()[0]
+    except:
+        avaliacoes = '0'
+    try:
+        nota = soup.find('span', class_='ui_bubble_rating')['class'][1][-2:]
+        nota = nota[0] + '.' + nota[1]
+    except:
+        nota = 'indef'
+    try:
+        atracao_id = entry_link.split('-')[2][1:]
+        api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/attraction/{}'.format(atracao_id)
+        api_json = requests.get(api_url).json()
+        coords = api_json['geoPoint']
+        lat = str(coords['latitude'])
+        lon = str(coords['longitude'])
+    except:
+        lat = 'indef'
+        lon = 'indef'
     
+    data = [nome, endereco, nota, avaliacoes, lat, lon, entry_url]
+    print(data)
+    return data
 
 #Infere o tipo a partir do nome do hotel
 def get_type_by_name(name, possible_types):
@@ -116,8 +141,7 @@ def get_type_by_name(name, possible_types):
 #de links dos hotéis
 def get_hotel_links(url):
     r = requests.get(url)
-    html = r.text
-    soup = BeautifulSoup(html, 'html.parser')
+    soup = BeautifulSoup(r.text, 'html.parser')
     listing_titles = soup.findAll(class_='listing_title')
     titles_links = []
     for entry in listing_titles:
@@ -136,6 +160,17 @@ def get_restaurants_links(url):
         restaurant_links.append(restaurant_link)
     
     return restaurant_links
+
+def get_atracoes_links(url):
+    r = requests.get(url)
+    soup = BeautifulSoup(r.text, 'html.parser')
+    atracoes_items = soup.findAll('a', class_='_1QKQOve4')
+    atracoes_links = []
+    for atracao in atracoes_items:
+        atracao_link = atracao['href']
+        atracoes_links.append(atracao_link)
+    
+    return atracoes_links
 
 #Gera, a partir de uma URl inicial, as URLS correspondentes ao avançar uma página na
 #listagem
@@ -192,6 +227,18 @@ if __name__ == "__main__":
     print(f'{len(data_hoteis)} hotéis coletados')
     '''
 
+    '''
+    headers_restaurant = ['nome', 'endereco', 'nota', 'avaliacoes', 'latitude', 'longitude', 'fonte']
     restaurant_initial_url = 'https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html'
-    restaurant_url_to_offset = 'https://www.tripadvisor.com.br/RestaurantSearch-g303389-oa{}-Ouro_Preto_State_of_Minas_Gerais.html#EATERY_LIST_CONTENTS'
+    restaurant_url_to_offset = 'https://www.tripadvisor.com.br/Restaurants-g303389-oa{}-Ouro_Preto_State_of_Minas_Gerais.html'
     data_restaurantes = coleta_dados(restaurant_initial_url, restaurant_url_to_offset, get_restaurants_links, get_data_restaurant)
+    write_to_file('restaurantes.csv', headers_restaurant, data_restaurantes)
+    print(f'{len(data_restaurantes)} restaurantes coletados')
+    '''
+
+    headers_atracoes = ['nome', 'endereco', 'nota', 'avaliacoes', 'latitude', 'longitude', 'fonte']
+    atracoes_initial_url = 'https://www.tripadvisor.com.br/Attractions-g303389-Activities-a_allAttractions.true-Ouro_Preto_State_of_Minas_Gerais.html'
+    atracoes_url_to_offset = 'https://www.tripadvisor.com.br/Attractions-g303389-Activities-oa{}-a_allAttractions.true-Ouro_Preto_State_of_Minas_Gerais.html'
+    data_atracoes = coleta_dados(atracoes_initial_url, atracoes_url_to_offset, get_atracoes_links, get_data_atracao)
+    write_to_file('atracoes.csv', headers_atracoes, data_atracoes)
+    print(f'{len(data_atracoes)} atracoes coletadas')
