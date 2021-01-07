@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
+import json
 
 #A partir de um link de hotel, entra na pagina do hotel em questão
 #e retorna seu nome, enderço, tipo e quantidade de quartos
@@ -8,13 +9,32 @@ def get_data_hotel(entry_link):
     r = requests.get(entry_url)
     soup = BeautifulSoup(r.text, 'html.parser')
     nome = soup.find(id="HEADING").string.strip()
-    endereco = soup.find(class_='_3ErVArsu').string.replace(","," |")
+    print(nome)
+    try:
+        endereco = soup.find(class_='_3ErVArsu jke2_wbp').string.replace(","," |")
+    except:
+        endereco = "indef"
     #preco = soup.find("div", class_="CEf5oHnZ").string.split()[-1]
-    qtd_avaliacoes = soup.find("span", class_='_33O9dg0j').string.split()[0]
-    nota = soup.find("span", class_="_3cjYfwwQ").string.replace(",", ".")
-    nota_pedestres = soup.find("span", class_="oPMurIUj _1iwDIdby").string
-    restaurantes_perto = soup.find("span", class_="oPMurIUj TrfXbt7b").string
-    atracoes_perto = soup.find("span", class_="oPMurIUj _1WE0iyL_").string
+    try:
+        qtd_avaliacoes = soup.find("span", class_='_33O9dg0j').string.split()[0]
+    except:
+        qtd_avaliacoes = "0"
+    try:
+        nota = soup.find("span", class_="_3cjYfwwQ").string.replace(",", ".")
+    except:
+        nota = "indef"
+    try:
+        nota_pedestres = soup.find("span", class_="oPMurIUj _1iwDIdby").string
+    except:
+        nota_pedestres = "indef"
+    try:
+        restaurantes_perto = soup.find("span", class_="oPMurIUj TrfXbt7b").string
+    except:
+        restaurantes_perto = "indef"
+    try:
+        atracoes_perto = soup.find("span", class_="oPMurIUj _1WE0iyL_").string
+    except:
+        atracoes_perto = "indef"
     try:
         categoria = soup.find("svg", class_="_2aZlo29m")['title'].split()[0].replace(",", ".")
     except:
@@ -23,10 +43,17 @@ def get_data_hotel(entry_link):
     if qtd_quartos is None:
         qtd_quartos = "indef"
     tipo = get_type_by_name(nome, ['Hotel', 'Pousada', 'Hostel'])
+
+    hotel_id = entry_link.split("-")[2][1:]
+    api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/hotel/{}?rn=1&rc=Hotel_Review&stayDates=2021_2_11_2021_2_12&guestInfo=1_2&placementName=Hotel_Review_MapDetail_Anchor&currency=BRL'.format(hotel_id)
+    api_json = requests.get(api_url).json()
+    coords = api_json['hotels'][0]['location']['geoPoint']
+    lat = str(coords['latitude'])
+    lon = str(coords['longitude'])
     
     data = [nome, endereco, tipo, qtd_quartos, qtd_avaliacoes, nota, categoria, nota_pedestres, 
-            restaurantes_perto, atracoes_perto, entry_url]
-    print(data)
+            restaurantes_perto, atracoes_perto, lat, lon, entry_url]
+    #print(data)
     return data 
 
 #Infere o tipo a partir do nome do hotel
@@ -89,7 +116,7 @@ def coleta_hoteis(initial_url='https://www.tripadvisor.com.br/Hotels-g303389-Our
 
 if __name__ == "__main__":
     headers_hotel = ["nome", "endereço", "tipo", "qtd_quartos", "qtd_avaliacoes", "nota", "categoria", 
-                "nota_pedesrtres", "restaurantes_perto", "atracoes_perto", "fonte"]
+                "nota_pedesrtres", "restaurantes_perto", "atracoes_perto", "latitude", "longitude", "fonte"]
     data = coleta_hoteis()
     write_to_file("hoteis.csv", headers_hotel, data)
     print(f'{len(data)} hotéis coletados')
