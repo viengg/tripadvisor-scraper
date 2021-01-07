@@ -81,15 +81,12 @@ def get_hotel_links(url):
 #listagem
 def get_page_urls(initial_url, num_pages):
     urls=[initial_url]
-    split_url = initial_url.split("-")
-    num_entries_by_page = 30
+    data_offset= 30
+    aux = data_offset
     for _ in range(1,num_pages):
-        aux = "oa" + str(num_entries_by_page)
-        url = split_url[:]
-        url.insert(2, aux)
-        url = '-'.join(url)
+        url = 'https://www.tripadvisor.com.br/Hotels-g303389-oa{}-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'.format(aux)
         urls.append(url)
-        num_entries_by_page = num_entries_by_page + num_entries_by_page
+        aux= aux+data_offset
 
     return urls
 
