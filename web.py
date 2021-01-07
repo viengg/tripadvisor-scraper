@@ -44,7 +44,7 @@ def get_data_hotel(entry_link):
     if qtd_quartos is None:
         qtd_quartos = "indef"
         
-    tipo = get_type_by_name(nome, ['Hotel', 'Pousada', 'Hostel'])
+    tipo = get_type_by_name(nome, ['Hotel', 'Pousada', 'Hostel', 'Chale'])
 
     hotel_id = entry_link.split("-")[2][1:]
     try:
@@ -68,6 +68,8 @@ def get_type_by_name(name, possible_types):
     for tipo in possible_types:
         if tipo in name:
             return tipo
+    if 'Chalé' in name or 'Chalés' in name or 'Chales' in name:
+        return 'Chale'
     return "indef"
 
 #Faz o parsing da página HTML que contém as listagens dos hotéis e retorna uma lista
