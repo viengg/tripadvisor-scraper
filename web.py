@@ -79,14 +79,13 @@ def get_hotel_links(url):
 
 #Gera, a partir de uma URl inicial, as URLS correspondentes ao avançar uma página na
 #listagem
-def get_page_urls(initial_url, num_pages):
+def get_page_urls(initial_url, url_to_offset, num_pages, entries_by_page):
     urls=[initial_url]
-    data_offset= 30
-    aux = data_offset
+    data_offset = entries_by_page
     for _ in range(1,num_pages):
-        url = 'https://www.tripadvisor.com.br/Hotels-g303389-oa{}-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'.format(aux)
+        url = url_to_offset.format(data_offset)
         urls.append(url)
-        aux= aux+data_offset
+        data_offset= data_offset + entries_by_page
 
     return urls
 
@@ -100,20 +99,26 @@ def write_to_file(filename, header, data):
             f.write(buffer+"\n")
 
 #Coleta e retorna os dados (lista de listas) dos hotéis a partir da URL inicial das listagens
-def coleta_hoteis(initial_url='https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'):
-    page_urls = get_page_urls(initial_url, 3)
+def coleta_dados(initial_url, url_to_offset, get_links_function, data_extractor_function):
+    page_urls = get_page_urls(initial_url, url_to_offset, 3, 30)
+    print(page_urls)
 
     data = []
     #Seria bom utilizar multiprocessamento aqui
     for url in page_urls:
-        hotel_links = get_hotel_links(url)
-        d = list(map(get_data_hotel, hotel_links))
+        links = get_links_function(url)
+        d = list(map(data_extractor_function, links))
         data = data + d
     return data
 
 if __name__ == "__main__":
     headers_hotel = ["nome", "endereço", "tipo", "qtd_quartos", "qtd_avaliacoes", "nota", "categoria", 
                 "nota_pedesrtres", "restaurantes_perto", "atracoes_perto", "latitude", "longitude", "fonte"]
-    data = coleta_hoteis()
+
+    hotel_initial_url = 'https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'
+    hotel_url_to_offset = 'https://www.tripadvisor.com.br/Hotels-g303389-oa{}-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'
+
+    data = coleta_dados(hotel_initial_url, hotel_url_to_offset, get_hotel_links, get_data_hotel)
+
     write_to_file("hoteis.csv", headers_hotel, data)
     print(f'{len(data)} hotéis coletados')
