@@ -3,13 +3,14 @@ import requests
 import json
 
 #A partir de um link de hotel, entra na pagina do hotel em questão
-#e retorna seu nome, enderço, tipo e quantidade de quartos
+#e extrai seus dados
 def get_data_hotel(entry_link):
     entry_url = 'https://www.tripadvisor.com.br/' + entry_link
     r = requests.get(entry_url)
     soup = BeautifulSoup(r.text, 'html.parser')
     nome = soup.find(id="HEADING").string.strip()
     print(nome)
+
     try:
         endereco = soup.find(class_='_3ErVArsu jke2_wbp').string.replace(","," |")
     except:
@@ -42,15 +43,21 @@ def get_data_hotel(entry_link):
     qtd_quartos = soup.find(attrs={'class':'_2t2gK1hs', 'data-tab':'TABS_ABOUT'}).findAll(class_="_1NHwuRzF")[-1].string
     if qtd_quartos is None:
         qtd_quartos = "indef"
+        
     tipo = get_type_by_name(nome, ['Hotel', 'Pousada', 'Hostel'])
 
     hotel_id = entry_link.split("-")[2][1:]
-    api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/hotel/{}?rn=1&rc=Hotel_Review&stayDates=2021_2_11_2021_2_12&guestInfo=1_2&placementName=Hotel_Review_MapDetail_Anchor&currency=BRL'.format(hotel_id)
-    api_json = requests.get(api_url).json()
-    coords = api_json['hotels'][0]['location']['geoPoint']
-    lat = str(coords['latitude'])
-    lon = str(coords['longitude'])
-    
+    try:
+        api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/hotel/{}?rn=1&rc=Hotel_Review&stayDates=2021_2_11_2021_2_12&guestInfo=1_2&placementName=Hotel_Review_MapDetail_Anchor&currency=BRL'.format(hotel_id)
+        api_json = requests.get(api_url).json()
+        coords = api_json['hotels'][0]['location']['geoPoint']
+        lat = str(coords['latitude'])
+        lon = str(coords['longitude'])
+    except:
+        print(api_json)
+        lat = "indef"
+        lon = "indef"
+
     data = [nome, endereco, tipo, qtd_quartos, qtd_avaliacoes, nota, categoria, nota_pedestres, 
             restaurantes_perto, atracoes_perto, lat, lon, entry_url]
     #print(data)
@@ -69,10 +76,10 @@ def get_hotel_links(url):
     r = requests.get(url)
     html = r.text
     soup = BeautifulSoup(html, 'html.parser')
-    listing_entries = soup.findAll(attrs={'data-ttpn': 'Hotels_MainList'})
+    listing_titles = soup.findAll(class_='listing_title')
     titles_links = []
-    for entry in listing_entries:
-        title_link = entry.find(class_='listing_title').find('a')['href']
+    for entry in listing_titles:
+        title_link = entry.find('a')['href']
         titles_links.append(title_link)
 
     return titles_links
@@ -98,9 +105,18 @@ def write_to_file(filename, header, data):
             buffer = ",".join(instance)
             f.write(buffer+"\n")
 
+#Retorna o numero de paginas de entradas
+def get_max_num_pages(url):
+    r = requests.get(url)
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    num_pages = soup.findAll('a', class_="pageNum")[-1].string
+    return int(num_pages)
+
 #Coleta e retorna os dados (lista de listas) dos hotéis a partir da URL inicial das listagens
 def coleta_dados(initial_url, url_to_offset, get_links_function, data_extractor_function):
-    page_urls = get_page_urls(initial_url, url_to_offset, 3, 30)
+    num_pages = get_max_num_pages(initial_url)
+    page_urls = get_page_urls(initial_url, url_to_offset, num_pages, 30)
     print(page_urls)
 
     data = []
