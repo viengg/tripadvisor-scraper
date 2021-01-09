@@ -56,8 +56,23 @@ def get_hotel_data(entry_link):
         lat = "indef"
         lon = "indef"
 
-    data = [nome, endereco, tipo, qtd_quartos, qtd_avaliacoes, nota, categoria, nota_pedestres, 
-            restaurantes_perto, atracoes_perto, lat, lon, entry_url]
+    data ={
+        'nome': nome,
+        'endereco': endereco,
+        'tipo': tipo,
+        'qtd_quartos': qtd_quartos,
+        'qtd_avaliacoes': qtd_avaliacoes,
+        'nota': nota,
+        'categoria': categoria,
+        'nota_pedestres': nota_pedestres,
+        'restaurantes_perto': restaurantes_perto,
+        'atracoes_perto': atracoes_perto,
+        'latitude': lat,
+        'longitude': lon,
+        'fonte': entry_url
+    }
+    '''data = [nome, endereco, tipo, qtd_quartos, qtd_avaliacoes, nota, categoria, nota_pedestres, 
+            restaurantes_perto, atracoes_perto, lat, lon, entry_url]'''
     print(data)
     return data 
 
@@ -90,7 +105,16 @@ def get_restaurante_data(entry_link):
         lat = 'indef'
         lon = 'indef'
     
-    data = [nome, endereco, nota, avaliacoes, lat, lon, entry_url]
+    data = {
+        'nome': nome,
+        'endereco': endereco,
+        'nota': nota,
+        'qtd_avaliacoes': avaliacoes,
+        'latitude': lat,
+        'longitude': lon,
+        'fonte': entry_url
+    }
+    #data = [nome, endereco, nota, avaliacoes, lat, lon, entry_url]
     print(data)
     return data
 
@@ -124,7 +148,16 @@ def get_atracao_data(entry_link):
         lat = 'indef'
         lon = 'indef'
     
-    data = [nome, endereco, nota, avaliacoes, lat, lon, entry_url]
+    data = {
+        'nome': nome,
+        'endereco': endereco,
+        'nota': nota,
+        'qtd_avaliacoes': avaliacoes,
+        'latitude': lat,
+        'longitude': lon,
+        'fonte': entry_url
+    }
+   #data = [nome, endereco, nota, avaliacoes, lat, lon, entry_url]
     print(data)
     return data
 
@@ -196,12 +229,14 @@ def get_page_urls(initial_url, entries_by_page, page_type):
     return urls
 
 #Escreve os dados coletados em um arquivo .csv
-def write_to_file(filename, header, data):
+def write_to_file(filename, data):
     with open(filename, "w") as f:
+        header = data[0].keys()
         header_buffer = ",".join(header) + "\n"
         f.write(header_buffer)
         for instance in data:
-            buffer = ",".join(instance)
+            values = instance.values()
+            buffer = ",".join(values)
             f.write(buffer+"\n")
 
 #Retorna o numero de paginas total
@@ -225,32 +260,26 @@ def coleta_dados(initial_url, data_extractor, get_links, page_type):
     return data
 
 def coleta_hoteis_e_escreve(url):
-    headers_hotel = ["nome", "endereço", "tipo", "qtd_quartos", "qtd_avaliacoes", "nota", "categoria", 
-                "nota_pedesrtres", "restaurantes_perto", "atracoes_perto", "latitude", "longitude", "fonte"]
-
     data_hoteis = coleta_dados(url, get_hotel_data, get_hotel_links, 'hotel')
-    write_to_file("hoteis.csv", headers_hotel, data_hoteis)
+    write_to_file("hoteis.csv", data_hoteis)
     print(f'{len(data_hoteis)} hotéis coletados')
 
 def coleta_restaurantes_e_escreve(url):
-    headers_restaurant = ['nome', 'endereco', 'nota', 'avaliacoes', 'latitude', 'longitude', 'fonte']
-
     data_restaurantes = coleta_dados(url, get_restaurante_data, get_restaurante_links, 'restaurante')
-    write_to_file('restaurantes.csv', headers_restaurant, data_restaurantes)
+    write_to_file('restaurantes.csv', data_restaurantes)
     print(f'{len(data_restaurantes)} restaurantes coletados')
 
 def coleta_atracoes_e_escreve(url):
-    headers_atracoes = ['nome', 'endereco', 'nota', 'avaliacoes', 'latitude', 'longitude', 'fonte']
     data_atracoes = coleta_dados(url, get_atracao_data, get_atracao_links, 'atracao')
-    write_to_file('atracoes.csv', headers_atracoes, data_atracoes)
+    write_to_file('atracoes.csv', data_atracoes)
     print(f'{len(data_atracoes)} atracoes coletadas')
 
 if __name__ == "__main__":
-    hotel_url = 'https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'
-    coleta_hoteis_e_escreve(hotel_url)
+    #hotel_url = 'https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'
+    #coleta_hoteis_e_escreve(hotel_url)
     
-    restaurante_url = 'https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html'
-    coleta_restaurantes_e_escreve(restaurante_url)
+    #restaurante_url = 'https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html'
+    #coleta_restaurantes_e_escreve(restaurante_url)
     
     atracao_url = 'https://www.tripadvisor.com.br/Attractions-g303389-Activities-a_allAttractions.true-Ouro_Preto_State_of_Minas_Gerais.html'
     coleta_atracoes_e_escreve(atracao_url)
