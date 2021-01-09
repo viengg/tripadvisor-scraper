@@ -203,18 +203,21 @@ def get_atracao_links(url):
     return atracoes_links
 
 #Gera, a partir de uma URl inicial, as URLS correspondentes ao avançar uma página
-def get_page_urls(initial_url, entries_by_page, page_type):
+def get_page_urls(initial_url, page_type):
     urls=[initial_url]
-    data_offset = entries_by_page
     num_pages = get_max_num_pages(initial_url)
 
+    if page_type in ['hotel', 'restaurante', 'atracao']:
+        entries_by_page = 30
+        offset_package = 'oa{}'
     if page_type == 'hotel' or page_type == 'restaurante':
         pos_to_insert = 2
     elif page_type == 'atracao':
         pos_to_insert = 3
 
+    data_offset = entries_by_page
     url_to_offset = initial_url.split('-')
-    url_to_offset.insert(pos_to_insert, 'oa{}')
+    url_to_offset.insert(pos_to_insert, offset_package)
     url_to_offset = '-'.join(url_to_offset)
 
     for _ in range(1,num_pages):
@@ -245,7 +248,7 @@ def get_max_num_pages(url):
 
 #Coleta dados de hoteis/restaurantes/atracoes (lista de listas)
 def coleta_dados(initial_url, data_extractor, get_links, page_type):
-    page_urls = get_page_urls(initial_url, 30, page_type)
+    page_urls = get_page_urls(initial_url, page_type)
 
     data = []
     for url in page_urls:
@@ -272,10 +275,11 @@ def coleta_atracoes_e_escreve(url):
 
 if __name__ == "__main__":
     hotel_url = 'https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'
-    coleta_hoteis_e_escreve(hotel_url)
+    #coleta_hoteis_e_escreve(hotel_url)
     
     restaurante_url = 'https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html'
-    coleta_restaurantes_e_escreve(restaurante_url)
+    #coleta_restaurantes_e_escreve(restaurante_url)
     
     atracao_url = 'https://www.tripadvisor.com.br/Attractions-g303389-Activities-a_allAttractions.true-Ouro_Preto_State_of_Minas_Gerais.html'
-    coleta_atracoes_e_escreve(atracao_url)
+    #coleta_atracoes_e_escreve(atracao_url)
+    print(get_page_urls(atracao_url, 'atracao'))
