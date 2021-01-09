@@ -71,8 +71,6 @@ def get_hotel_data(entry_link):
         'longitude': lon,
         'fonte': entry_url
     }
-    '''data = [nome, endereco, tipo, qtd_quartos, qtd_avaliacoes, nota, categoria, nota_pedestres, 
-            restaurantes_perto, atracoes_perto, lat, lon, entry_url]'''
     print(data)
     return data 
 
@@ -114,7 +112,6 @@ def get_restaurante_data(entry_link):
         'longitude': lon,
         'fonte': entry_url
     }
-    #data = [nome, endereco, nota, avaliacoes, lat, lon, entry_url]
     print(data)
     return data
 
@@ -157,7 +154,6 @@ def get_atracao_data(entry_link):
         'longitude': lon,
         'fonte': entry_url
     }
-   #data = [nome, endereco, nota, avaliacoes, lat, lon, entry_url]
     print(data)
     return data
 
@@ -275,11 +271,11 @@ def coleta_atracoes_e_escreve(url):
     print(f'{len(data_atracoes)} atracoes coletadas')
 
 if __name__ == "__main__":
-    #hotel_url = 'https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'
-    #coleta_hoteis_e_escreve(hotel_url)
+    hotel_url = 'https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'
+    coleta_hoteis_e_escreve(hotel_url)
     
-    #restaurante_url = 'https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html'
-    #coleta_restaurantes_e_escreve(restaurante_url)
+    restaurante_url = 'https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html'
+    coleta_restaurantes_e_escreve(restaurante_url)
     
     atracao_url = 'https://www.tripadvisor.com.br/Attractions-g303389-Activities-a_allAttractions.true-Ouro_Preto_State_of_Minas_Gerais.html'
     coleta_atracoes_e_escreve(atracao_url)
