@@ -4,7 +4,7 @@ import json
 
 #A partir de um link de hotel, entra na pagina do hotel em questão
 #e extrai seus dados
-def get_data_hotel(entry_link):
+def get_hotel_data(entry_link):
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
     r = requests.get(entry_url)
     soup = BeautifulSoup(r.text, 'html.parser')
@@ -62,7 +62,7 @@ def get_data_hotel(entry_link):
     return data 
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
-def get_data_restaurant(entry_link):
+def get_restaurante_data(entry_link):
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
     r = requests.get(entry_url)
     soup = BeautifulSoup(r.text, 'html.parser')
@@ -95,7 +95,7 @@ def get_data_restaurant(entry_link):
     return data
 
 #A partir de um link de atracao, entra na pagina e extrai seus dados
-def get_data_atracao(entry_link):
+def get_atracao_data(entry_link):
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
     r = requests.get(entry_url)
     soup = BeautifulSoup(r.text, 'html.parser')
@@ -150,7 +150,7 @@ def get_hotel_links(url):
     return titles_links
 
 #Retorna os links dos restaurantes presentes numa listagem
-def get_restaurants_links(url):
+def get_restaurante_links(url):
     r = requests.get(url)
     soup = BeautifulSoup(r.text, 'html.parser')
     restaurant_items = soup.findAll(class_='_1llCuDZj')
@@ -162,7 +162,7 @@ def get_restaurants_links(url):
     return restaurant_links
 
 #Retorna os links das atracoes presentes numa listagem
-def get_atracoes_links(url):
+def get_atracao_links(url):
     r = requests.get(url)
     soup = BeautifulSoup(r.text, 'html.parser')
     atracoes_items = soup.findAll('a', class_='_1QKQOve4')
@@ -174,9 +174,20 @@ def get_atracoes_links(url):
     return atracoes_links
 
 #Gera, a partir de uma URl inicial, as URLS correspondentes ao avançar uma página
-def get_page_urls(initial_url, url_to_offset, num_pages, entries_by_page):
+def get_page_urls(initial_url, entries_by_page, page_type):
     urls=[initial_url]
     data_offset = entries_by_page
+    num_pages = get_max_num_pages(initial_url)
+
+    if page_type == 'hotel' or page_type == 'restaurante':
+        pos_to_insert = 2
+    elif page_type == 'atracao':
+        pos_to_insert = 3
+
+    url_to_offset = initial_url.split('-')
+    url_to_offset.insert(pos_to_insert, 'oa{}')
+    url_to_offset = '-'.join(url_to_offset)
+
     for _ in range(1,num_pages):
         url = url_to_offset.format(data_offset)
         urls.append(url)
@@ -201,49 +212,14 @@ def get_max_num_pages(url):
     num_pages = soup.findAll('a', class_="pageNum")[-1].string
     return int(num_pages)
 
-#Retorna a proxima pagina na listagem de hoteis
-def get_next_page_hoteis(url):
-    r = requests.get(url)
-    soup = BeautifulSoup(r.text, 'html.parser')
-    next_page = soup.find('div', class_='ui_pagination').find('a', string='Próximas')['href']
-    return next_page
-
-#Retorna a proxima pagina na listagem de restaurantes
-def get_next_page_restaurantes(url):
-    r = requests.get(url)
-    soup = BeautifulSoup(r.text, 'html.parser')
-    next_page = soup.find('a', class_='nav next rndBtn ui_button primary taLnk')['href']
-    return next_page
-
-#Coleta e retorna os dados (lista de listas) de hoteis ou restaurantes a partir da URL inicial das listagens
-def coleta_hoteis_ou_restaurantes(initial_url, data_extractor, get_links, get_next_page):
-    url_to_collect = initial_url
-    data = []
-    while True:
-        links = get_links(url_to_collect)
-        d = list(map(data_extractor, links))
-        data = data + d
-        try:
-            url_to_collect = 'https://www.tripadvisor.com.br' + get_next_page(url_to_collect)
-        except:
-            break
-
-    return data
-
-#Coleta e retorna os dados (lista de listas) de atracoes a partir da URL inicial das listagens
-def coleta_atracoes(initial_url):
-    num_pages = get_max_num_pages(initial_url)
-
-    url_to_offset = initial_url.split('-')
-    url_to_offset.insert(3, 'oa{}')
-    url_to_offset = '-'.join(url_to_offset)
-
-    page_urls = get_page_urls(initial_url, url_to_offset, num_pages, 30)
+#Coleta dados de hoteis/restaurantes/atracoes (lista de listas)
+def coleta_dados(initial_url, data_extractor, get_links, page_type):
+    page_urls = get_page_urls(initial_url, 30, page_type)
 
     data = []
     for url in page_urls:
-        links = get_atracoes_links(url)
-        d = list(map(get_data_atracao, links))
+        links = get_links(url)
+        d = list(map(data_extractor, links))
         data = data + d
 
     return data
@@ -252,20 +228,20 @@ def coleta_hoteis_e_escreve(url):
     headers_hotel = ["nome", "endereço", "tipo", "qtd_quartos", "qtd_avaliacoes", "nota", "categoria", 
                 "nota_pedesrtres", "restaurantes_perto", "atracoes_perto", "latitude", "longitude", "fonte"]
 
-    data_hoteis = coleta_hoteis_ou_restaurantes(url, get_data_hotel, get_hotel_links, get_next_page_hoteis)
+    data_hoteis = coleta_dados(url, get_hotel_data, get_hotel_links, 'hotel')
     write_to_file("hoteis.csv", headers_hotel, data_hoteis)
     print(f'{len(data_hoteis)} hotéis coletados')
 
 def coleta_restaurantes_e_escreve(url):
     headers_restaurant = ['nome', 'endereco', 'nota', 'avaliacoes', 'latitude', 'longitude', 'fonte']
 
-    data_restaurantes = coleta_hoteis_ou_restaurantes(url, get_data_restaurant, get_restaurants_links, get_next_page_restaurantes)
+    data_restaurantes = coleta_dados(url, get_restaurante_data, get_restaurante_links, 'restaurante')
     write_to_file('restaurantes.csv', headers_restaurant, data_restaurantes)
     print(f'{len(data_restaurantes)} restaurantes coletados')
 
 def coleta_atracoes_e_escreve(url):
     headers_atracoes = ['nome', 'endereco', 'nota', 'avaliacoes', 'latitude', 'longitude', 'fonte']
-    data_atracoes = coleta_atracoes(url)
+    data_atracoes = coleta_dados(url, get_atracao_data, get_atracao_links, 'atracao')
     write_to_file('atracoes.csv', headers_atracoes, data_atracoes)
     print(f'{len(data_atracoes)} atracoes coletadas')
 
@@ -273,8 +249,8 @@ if __name__ == "__main__":
     hotel_url = 'https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'
     coleta_hoteis_e_escreve(hotel_url)
     
-    restaurant_url = 'https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html'
-    coleta_restaurantes_e_escreve(restaurant_url)
+    restaurante_url = 'https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html'
+    coleta_restaurantes_e_escreve(restaurante_url)
     
-    atracoes_url = 'https://www.tripadvisor.com.br/Attractions-g303389-Activities-a_allAttractions.true-Ouro_Preto_State_of_Minas_Gerais.html'
-    coleta_atracoes_e_escreve(atracoes_url)
+    atracao_url = 'https://www.tripadvisor.com.br/Attractions-g303389-Activities-a_allAttractions.true-Ouro_Preto_State_of_Minas_Gerais.html'
+    coleta_atracoes_e_escreve(atracao_url)
