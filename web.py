@@ -273,13 +273,23 @@ def coleta_atracoes_e_escreve(url):
     write_to_file('atracoes.csv', data_atracoes)
     print(f'{len(data_atracoes)} atracoes coletadas')
 
+def get_links_from_city(city_url):
+    r = requests.get(city_url)
+    soup = BeautifulSoup(r.text, 'html.parser')
+    hotel_url = 'https://www.tripadvisor.com.br'+ soup.find('a', {'class': '_1yB-kafB', 'title':'Hotéis'})['href']
+    restaurante_url = 'https://www.tripadvisor.com.br' + soup.find('a', {'class': '_1yB-kafB', 'title':'Restaurantes'})['href']
+    atracao_url = 'https://www.tripadvisor.com.br' + soup.find('a', {'class': '_1yB-kafB', 'title':'O que fazer'})['href']
+    atracao_url = atracao_url.split('-')
+    atracao_url.insert(3, 'a_allAttractions.true')
+    atracao_url = '-'.join(atracao_url)
+    
+    return (hotel_url, restaurante_url, atracao_url)
+
+def coleta_por_cidade(city_url):
+    hotel_url, restaurante_url, atracao_url = get_links_from_city(city_url)
+    coleta_hoteis_e_escreve(hotel_url)
+    coleta_restaurantes_e_escreve(restaurante_url)
+    coleta_atracoes_e_escreve(atracao_url)
+
 if __name__ == "__main__":
-    hotel_url = 'https://www.tripadvisor.com.br/Hotels-g303389-Ouro_Preto_State_of_Minas_Gerais-Hotels.html'
-    #coleta_hoteis_e_escreve(hotel_url)
-    
-    restaurante_url = 'https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html'
-    #coleta_restaurantes_e_escreve(restaurante_url)
-    
-    atracao_url = 'https://www.tripadvisor.com.br/Attractions-g303389-Activities-a_allAttractions.true-Ouro_Preto_State_of_Minas_Gerais.html'
-    #coleta_atracoes_e_escreve(atracao_url)
-    print(get_page_urls(atracao_url, 'atracao'))
+    coleta_por_cidade('https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html')
