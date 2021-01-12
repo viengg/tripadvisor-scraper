@@ -2,14 +2,21 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+
+
+def get_soup(url):
+    r = requests.get(url)
+    soup = BeautifulSoup(r.text, 'lxml')
+    return soup
 
 #A partir de um link de hotel, entra na pagina do hotel em questão
 #e extrai seus dados
 def get_hotel_data(entry_link):
     time.sleep(1)
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
-    r = requests.get(entry_url)
-    soup = BeautifulSoup(r.text, 'html.parser')
+    soup = get_soup(entry_url)
     nome = soup.find(id="HEADING").string.strip()
     cidade = soup.find('a', id='global-nav-tourism').string
 
@@ -17,7 +24,6 @@ def get_hotel_data(entry_link):
         endereco = soup.find(class_='_3ErVArsu jke2_wbp').string.replace(","," |")
     except:
         endereco = "indef"
-    #preco = soup.find("div", class_="CEf5oHnZ").string.split()[-1]
     try:
         qtd_avaliacoes = soup.find("span", class_='_33O9dg0j').string.split()[0]
     except:
@@ -59,7 +65,9 @@ def get_hotel_data(entry_link):
         lat = "indef"
         lon = "indef"
 
+    comentarios = coleta_reviews(hotel_id, nome, 'hotel', entry_url, get_hotel_review_data)
     data ={
+        'hotel_id': hotel_id,
         'nome': nome,
         'endereco': endereco,
         'cidade': cidade,
@@ -82,8 +90,7 @@ def get_hotel_data(entry_link):
 def get_restaurante_data(entry_link):
     time.sleep(1)
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
-    r = requests.get(entry_url)
-    soup = BeautifulSoup(r.text, 'html.parser')
+    soup = get_soup(entry_url)
     nome = soup.find('h1', {'data-test-target':'top-info-header'}).string.replace(',', ' |')
     cidade = soup.find('a', id='global-nav-tourism').string
 
@@ -111,6 +118,7 @@ def get_restaurante_data(entry_link):
         lon = 'indef'
     
     data = {
+        'restaurante_id': restaurant_id,
         'nome': nome,
         'endereco': endereco,
         'cidade': cidade,
@@ -127,8 +135,7 @@ def get_restaurante_data(entry_link):
 def get_atracao_data(entry_link):
     time.sleep(1)
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
-    r = requests.get(entry_url)
-    soup = BeautifulSoup(r.text, 'html.parser')
+    soup = get_soup(entry_url)
     try:
         nome = soup.find('h1', id='HEADING').string.strip()
     except:
@@ -160,6 +167,7 @@ def get_atracao_data(entry_link):
         lon = 'indef'
     
     data = {
+        'atracao_id': atracao_id,
         'nome': nome,
         'endereco': endereco,
         'cidade': cidade,
@@ -170,6 +178,58 @@ def get_atracao_data(entry_link):
         'fonte': entry_url
     }
     print(data)
+    return data
+
+def get_hotel_review_data(id_, nome, tipo, review):
+    usuario = review.find('a', class_='ui_header_link _1r_My98y')['href'].split('/')[-1]
+    data_avaliacao = review.find('a', class_='ui_header_link _1r_My98y').parent.text.split()
+    data_avaliacao = ' '.join(data_avaliacao[data_avaliacao.index('avaliação')+1:])
+    data_estadia = ' '.join(review.find('span', class_='_34Xs-BQm').text.split()[-3:])
+    nota = review.find(class_='nf9vGX55').find('span', class_='ui_bubble_rating')['class'][1][-2:]
+    nota = nota[0] + '.' + nota[1]
+    titulo = review.find(class_='glasR4aX').string
+    conteudo = '\"' + review.find('q', class_='IRsGHoPm').text + '\"'
+    try:
+        tipo_viagem = ' '.join(review.find('span', class_='_2bVY3aT5').text.split()[3:])
+    except:
+        tipo_viagem = 'indef'
+    try:
+        origem = review.find('span', class_='default _3J15flPT small').text
+    except:
+        origem = 'indef'
+
+    data = {
+        'estabelecimento': nome,
+        'estabelecimento_id': id_,
+        'estabelecimento_tipo': tipo,
+        'usuario': usuario,
+        'data_avaliacao': data_avaliacao,
+        'data_estadia': data_estadia,
+        'nota': nota,
+        'titulo': titulo,
+        'conteudo': conteudo,
+        'tipo_viagem': tipo_viagem,
+        'origem': origem
+    }
+    print(data)
+    return data
+
+def get_review_cards(entry_url):
+    soup = get_soup(entry_url)
+    review_cards = soup.findAll('div', class_='_2wrUUKlw _3hFEdNs8')
+    return review_cards
+
+def coleta_reviews(nome, id_, tipo, entry_url, get_review_data):
+    review_urls = get_page_urls(entry_url, 'review')
+    data = []
+    
+    for review_url in review_urls:
+        review_cards = get_review_cards(review_url)
+        get_review_data = partial(get_review_data, id_, nome, tipo)
+        with ThreadPoolExecutor() as pool:
+            d = pool.map(get_review_data, review_cards)
+        data += list(d)
+    
     return data
 
 #Infere o tipo a partir do nome do hotel
@@ -183,8 +243,7 @@ def get_type_by_name(name, possible_types):
 
 #Retorna os links dos hoteis presentes numa listagem
 def get_hotel_links(url):
-    r = requests.get(url)
-    soup = BeautifulSoup(r.text, 'html.parser')
+    soup = get_soup(url)
     listing_titles = soup.findAll(class_='listing_title')
     titles_links = []
     for entry in listing_titles:
@@ -195,8 +254,7 @@ def get_hotel_links(url):
 
 #Retorna os links dos restaurantes presentes numa listagem
 def get_restaurante_links(url):
-    r = requests.get(url)
-    soup = BeautifulSoup(r.text, 'html.parser')
+    soup = get_soup(url)
     restaurant_items = soup.findAll(class_='_1llCuDZj')
     restaurant_links = []
     for restaurant in restaurant_items:
@@ -207,8 +265,7 @@ def get_restaurante_links(url):
 
 #Retorna os links das atracoes presentes numa listagem
 def get_atracao_links(url):
-    r = requests.get(url)
-    soup = BeautifulSoup(r.text, 'html.parser')
+    soup = get_soup(url)
     atracoes_items = soup.findAll('a', class_='_1QKQOve4')
     atracoes_links = []
     for atracao in atracoes_items:
@@ -229,6 +286,10 @@ def get_page_urls(initial_url, page_type):
         pos_to_insert = 2
     elif page_type == 'atracao':
         pos_to_insert = 3
+    elif page_type == 'review':
+        entries_by_page = 5
+        offset_package = 'or{}'
+        pos_to_insert = 4
 
     data_offset = entries_by_page
     url_to_offset = initial_url.split('-')
@@ -252,9 +313,7 @@ def write_to_file(filename, data):
 
 #Retorna o numero de paginas total
 def get_max_num_pages(url):
-    r = requests.get(url)
-    soup = BeautifulSoup(r.text, "html.parser")
-
+    soup = get_soup(url)
     num_pages = soup.findAll('a', class_="pageNum")[-1].string
     return int(num_pages)
 
@@ -265,8 +324,9 @@ def coleta_dados(initial_url, data_extractor, get_links, page_type):
     data = []
     for url in page_urls:
         links = get_links(url)
-        d = list(map(data_extractor, links))
-        data = data + d
+        with ThreadPoolExecutor() as pool:
+            d = pool.map(data_extractor, links)
+        data += list(d)
 
     return data
 
@@ -286,8 +346,7 @@ def coleta_atracoes(url):
     print(f'\n{len(atracoes)} atracoes coletadas\n')
 
 def get_links_from_city(city_url):
-    r = requests.get(city_url)
-    soup = BeautifulSoup(r.text, 'html.parser')
+    soup = get_soup(city_url)
     hotel_url = 'https://www.tripadvisor.com.br'+ soup.find('a', {'class': '_1yB-kafB', 'title':'Hotéis'})['href']
     restaurante_url = 'https://www.tripadvisor.com.br' + soup.find('a', {'class': '_1yB-kafB', 'title':'Restaurantes'})['href']
     atracao_url = 'https://www.tripadvisor.com.br' + soup.find('a', {'class': '_1yB-kafB', 'title':'O que fazer'})['href']
@@ -309,13 +368,13 @@ def coleta_cidades(city_url_list):
         coleta_por_cidade(city_url)
 
 def create_files():
-    hotel_header = ['nome', 'endereco', 'cidade', 'tipo', 'qtd_quartos',
+    hotel_header = ['hotel_id', 'nome', 'endereco', 'cidade', 'tipo', 'qtd_quartos',
     'qtd_avaliacoes', 'nota', 'categoria', 'nota_pedestres',
     'restaurantes_perto', 'atracoes_perto', 'latitude', 'longitude',
     'fonte']
-    restaurante_header = ['nome', 'endereco', 'cidade', 'nota', 'qtd_avaliacoes',
+    restaurante_header = ['restaurante_id', 'nome', 'endereco', 'cidade', 'nota', 'qtd_avaliacoes',
     'latitude', 'longitude', 'fonte']
-    atracao_header = ['nome', 'endereco', 'cidade', 'nota', 'qtd_avaliacoes',
+    atracao_header = ['atracao_id', 'nome', 'endereco', 'cidade', 'nota', 'qtd_avaliacoes',
     'latitude', 'longitude', 'fonte']
 
     with open('hoteis.csv','w') as f:
