@@ -3,10 +3,11 @@ import requests
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
-from functools import partial
+from functools import partial, reduce
 
 
 def get_soup(url):
+    time.sleep(1)
     r = requests.get(url)
     soup = BeautifulSoup(r.text, 'lxml')
     return soup
@@ -14,7 +15,6 @@ def get_soup(url):
 #A partir de um link de hotel, entra na pagina do hotel em questão
 #e extrai seus dados
 def get_hotel_data(entry_link):
-    time.sleep(1)
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
     soup = get_soup(entry_url)
     nome = soup.find(id="HEADING").string.strip()
@@ -65,7 +65,7 @@ def get_hotel_data(entry_link):
         lat = "indef"
         lon = "indef"
 
-    comentarios = coleta_reviews(hotel_id, nome, 'hotel', entry_url, get_hotel_review_data)
+    #comentarios = coleta_reviews(hotel_id, nome, 'hotel', 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
     data ={
         'hotel_id': hotel_id,
         'nome': nome,
@@ -88,10 +88,12 @@ def get_hotel_data(entry_link):
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
 def get_restaurante_data(entry_link):
-    time.sleep(1)
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
     soup = get_soup(entry_url)
-    nome = soup.find('h1', {'data-test-target':'top-info-header'}).string.replace(',', ' |')
+    try:
+        nome = soup.find('h1', {'data-test-target':'top-info-header'}).string.replace(',', ' |')
+    except:
+        nome = 'indef'
     cidade = soup.find('a', id='global-nav-tourism').string
 
     try:
@@ -133,7 +135,6 @@ def get_restaurante_data(entry_link):
 
 #A partir de um link de atracao, entra na pagina e extrai seus dados
 def get_atracao_data(entry_link):
-    time.sleep(1)
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
     soup = get_soup(entry_url)
     try:
@@ -187,7 +188,7 @@ def get_hotel_review_data(id_, nome, tipo, review):
     data_estadia = ' '.join(review.find('span', class_='_34Xs-BQm').text.split()[-3:])
     nota = review.find(class_='nf9vGX55').find('span', class_='ui_bubble_rating')['class'][1][-2:]
     nota = nota[0] + '.' + nota[1]
-    titulo = review.find(class_='glasR4aX').string
+    titulo = '\"' + review.find(class_='glasR4aX').string + '\"'
     conteudo = '\"' + review.find('q', class_='IRsGHoPm').text + '\"'
     try:
         tipo_viagem = ' '.join(review.find('span', class_='_2bVY3aT5').text.split()[3:])
@@ -214,22 +215,99 @@ def get_hotel_review_data(id_, nome, tipo, review):
     print(data)
     return data
 
-def get_review_cards(entry_url):
+def get_restaurante_review_data(id_, nome, tipo, review):
+    usuario = review.find('div', class_='info_text pointer_cursor').text
+    data_avaliacao = review.find('span', class_='ratingDate')['title']
+    data_visita = ' '.join(review.find('div', class_='prw_rup prw_reviews_stay_date_hsx').text.split()[3:])
+    nota = review.find('span', class_='ui_bubble_rating')['class'][1][-2:]
+    nota = nota[0] + '.' + nota[1]
+    titulo = '\"'+ review.find('span', class_='noQuotes').text + '\"'
+    conteudo = '\"' + review.find('p', class_='partial_entry').text + '\"'
+    #origem = review.find(class_='userLoc')
+    data = {
+        'estabelecimento': nome,
+        'estabelecimento_id': id_,
+        'estabelecimento_tipo': tipo,
+        'usuario': usuario,
+        'data_avaliacao': data_avaliacao,
+        'data_visita': data_visita,
+        'nota': nota,
+        'titulo': titulo,
+        'conteudo': conteudo
+    }
+    
+    print(data)
+    return data
+
+def get_atracao_review_data(id_, nome, tipo, review):
+    usuario = review.find('a', class_='_3x5_awTA ui_social_avatar inline')['href'].split('/')[-1]
+    try:
+        data_avaliacao = review.find('a', class_='ui_header_link _1r_My98y').parent.text.split()
+        data_avaliacao = ' '.join(data_avaliacao[data_avaliacao.index('avaliação')+1:])
+    except:
+        data_avaliacao = 'indef'
+    try:
+        data_visita = ' '.join(review.find('span', class_='_34Xs-BQm').text.split()[3:])
+    except:
+        data_visita = 'indef'
+    nota = review.find('span', class_='ui_bubble_rating')['class'][1][-2:]
+    nota = nota[0] + '.' + nota[1]
+    titulo = '\"' + review.find(class_='glasR4aX').string + '\"'
+    conteudo = '\"' + review.find('q', class_='IRsGHoPm').text + '\"'
+    try:
+        origem = review.find('span', class_='default _3J15flPT small').text
+    except:
+        origem = 'indef'
+
+    data = {
+        'estabelecimento': nome,
+        'estabelecimento_id': id_,
+        'estabelecimento_tipo': tipo,
+        'usuario': usuario,
+        'data_avaliacao': data_avaliacao,
+        'data_visita': data_visita,
+        'nota': nota,
+        'titulo': titulo,
+        'conteudo': conteudo,
+        'origem': origem
+    }
+
+    print(data)
+    return data
+
+def get_hotel_review_cards(entry_url):
     soup = get_soup(entry_url)
     review_cards = soup.findAll('div', class_='_2wrUUKlw _3hFEdNs8')
     return review_cards
 
-def coleta_reviews(nome, id_, tipo, entry_url, get_review_data):
-    review_urls = get_page_urls(entry_url, 'review')
-    data = []
-    
-    for review_url in review_urls:
+def get_restaurante_review_cards(entry_url):
+    soup = get_soup(entry_url)
+    review_cards = soup.findAll('div', class_='review-container')
+    return review_cards
+
+def get_atracao_review_cards(entry_url):
+    soup = get_soup(entry_url)
+    review_cards = soup.findAll('div', class_='Dq9MAugU T870kzTX LnVzGwUB')
+    return review_cards
+
+def coleta_review_por_url(get_review_data, get_review_cards, review_url):
+    review_cards = get_review_cards(review_url)
+    data = map(get_review_data, review_cards)
+    return list(data)
+
+def coleta_reviews(nome, id_, tipo, tipo_review, entry_url, get_review_data, get_review_cards):
+    review_urls = get_page_urls(entry_url, tipo_review)
+    get_review_data = partial(get_review_data, id_, nome, tipo)
+    data_extractor = partial(coleta_review_por_url, get_review_data, get_review_cards)
+    with ThreadPoolExecutor() as pool:
+        d = pool.map(data_extractor, review_urls)
+    data = reduce(lambda acc, x: acc + x, d)
+   
+    '''for review_url in review_urls:
         review_cards = get_review_cards(review_url)
-        get_review_data = partial(get_review_data, id_, nome, tipo)
         with ThreadPoolExecutor() as pool:
             d = pool.map(get_review_data, review_cards)
-        data += list(d)
-    
+        data += list(d)'''
     return data
 
 #Infere o tipo a partir do nome do hotel
@@ -282,14 +360,17 @@ def get_page_urls(initial_url, page_type):
     if page_type in ['hotel', 'restaurante', 'atracao']:
         entries_by_page = 30
         offset_package = 'oa{}'
+    elif page_type in ['hotel-review', 'restaurante-review', 'atracao-review']:
+        offset_package = 'or{}'
+        pos_to_insert = 4
     if page_type == 'hotel' or page_type == 'restaurante':
         pos_to_insert = 2
     elif page_type == 'atracao':
         pos_to_insert = 3
-    elif page_type == 'review':
+    elif page_type == 'restaurante-review':
+        entries_by_page = 10
+    elif page_type == 'hotel-review' or page_type == 'atracao-review':
         entries_by_page = 5
-        offset_package = 'or{}'
-        pos_to_insert = 4
 
     data_offset = entries_by_page
     url_to_offset = initial_url.split('-')
@@ -388,6 +469,16 @@ def create_files():
         f.write(header_buffer)
 
 if __name__ == "__main__":
+    '''
+    start_time = time.time()
     cidades_url = ['https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html', 
     'https://www.tripadvisor.com.br/Tourism-g303386-Mariana_State_of_Minas_Gerais-Vacations.html']
     coleta_cidades(cidades_url)
+    print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
+    '''
+    start_time = time.time()
+    coleta_reviews('','','', 'atracao-review',
+    'https://www.tripadvisor.com.br/Attraction_Review-g303389-d4601254-Reviews-or5-Centro_Historico_de_Ouro_Preto-Ouro_Preto_State_of_Minas_Gerais.html',
+    get_atracao_review_data,
+    get_atracao_review_cards)
+    print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
