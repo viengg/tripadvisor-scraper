@@ -21,7 +21,7 @@ def get_hotel_data(entry_link):
     cidade = soup.find('a', id='global-nav-tourism').string
 
     try:
-        preco = soup.find('a', class_='bookableOffer')['data-pernight']
+        preco = soup.find(class_='bookableOffer')['data-pernight']
     except:
         preco = 'indef'
     try:
@@ -75,6 +75,7 @@ def get_hotel_data(entry_link):
         'nome': nome,
         'endereco': endereco,
         'cidade': cidade,
+        'preco': preco,
         'tipo': tipo,
         'qtd_quartos': qtd_quartos,
         'qtd_avaliacoes': qtd_avaliacoes,
@@ -452,7 +453,7 @@ def coleta_cidades(city_url_list):
         coleta_por_cidade(city_url)
 
 def create_files():
-    hotel_header = ['hotel_id', 'nome', 'endereco', 'cidade', 'tipo', 'qtd_quartos',
+    hotel_header = ['hotel_id', 'nome', 'endereco', 'cidade', 'preco', 'tipo', 'qtd_quartos',
     'qtd_avaliacoes', 'nota', 'categoria', 'nota_pedestres',
     'restaurantes_perto', 'atracoes_perto', 'latitude', 'longitude',
     'fonte']
@@ -472,16 +473,17 @@ def create_files():
         f.write(header_buffer)
 
 if __name__ == "__main__":
-    '''
+    
     start_time = time.time()
     cidades_url = ['https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html', 
     'https://www.tripadvisor.com.br/Tourism-g303386-Mariana_State_of_Minas_Gerais-Vacations.html']
     coleta_cidades(cidades_url)
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
+    
     '''
     start_time = time.time()
     coleta_reviews('','','atracao-review',
     'https://www.tripadvisor.com.br/Attraction_Review-g303389-d4601254-Reviews-or5-Centro_Historico_de_Ouro_Preto-Ouro_Preto_State_of_Minas_Gerais.html',
     get_atracao_review_data,
     get_atracao_review_cards)
-    print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
+    print(f'tempo de execução: {(time.time() - start_time)/60} minutos')'''
