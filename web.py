@@ -23,7 +23,10 @@ def parse_date(date):
 def get_hotel_data(entry_link):
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
     soup = get_soup(entry_url)
-    nome = soup.find(id="HEADING").string.strip()
+    try:
+        nome = soup.find(id="HEADING").string.strip()
+    except:
+        nome = 'indef'
     cidade = soup.find('a', id='global-nav-tourism').string
 
     try:
@@ -317,7 +320,7 @@ def get_atracao_review_data(id_, nome, tipo, review):
     except:
         nota = 'indef'
     try:
-        titulo = '\"' + review.find(class_='glasR4aX').string.replace('\'','') + '\"'
+        titulo = '\"' + review.find(class_='glasR4aX').string.replace('\"','') + '\"'
     except:
         titulo = 'indef'
     try:
