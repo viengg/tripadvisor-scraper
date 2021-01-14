@@ -5,6 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial, reduce
 import os
+import dateparser
 
 session = requests.Session()
 def get_soup(url):
@@ -12,6 +13,10 @@ def get_soup(url):
     r = session.get(url)
     soup = BeautifulSoup(r.text, 'lxml')
     return soup
+
+def parse_date(date):
+    date_parsed = str(dateparser.parse(date))
+    return date_parsed.split()[0]
 
 #A partir de um link de hotel, entra na pagina do hotel em questão
 #e extrai seus dados
@@ -70,7 +75,9 @@ def get_hotel_data(entry_link):
         lat = "indef"
         lon = "indef"
 
-    #comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
+    if int(qtd_avaliacoes) > 0:
+        comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
+        write_to_file('avaliacoes-hoteis.csv', comentarios)
     data ={
         'hotel_id': hotel_id,
         'nome': nome,
@@ -88,7 +95,6 @@ def get_hotel_data(entry_link):
         'latitude': lat,
         'longitude': lon,
         'fonte': entry_url,
-        #'comentarios': comentarios
     }
     print(nome+' coletado')
     return data 
@@ -126,7 +132,9 @@ def get_restaurante_data(entry_link):
         lat = 'indef'
         lon = 'indef'
     
-    #comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
+    if int(avaliacoes) > 0:
+        comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
+        write_to_file('avaliacoes-restaurantes.csv', comentarios)
     data = {
         'restaurante_id': restaurant_id,
         'nome': nome,
@@ -137,7 +145,7 @@ def get_restaurante_data(entry_link):
         'latitude': lat,
         'longitude': lon,
         'fonte': entry_url,
-        #'comentarios': comentarios
+        'comentarios': comentarios
     }
     print(nome + ' coletado')
     return data
@@ -176,7 +184,9 @@ def get_atracao_data(entry_link):
         lat = 'indef'
         lon = 'indef'
     
-    #comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
+    if int(avaliacoes) > 0:
+        comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
+        write_to_file('avaliacoes-atracoes.csv', comentarios)
     data = {
         'atracao_id': atracao_id,
         'nome': nome,
@@ -187,26 +197,45 @@ def get_atracao_data(entry_link):
         'latitude': lat,
         'longitude': lon,
         'fonte': entry_url,
-        #'comentarios': comentarios
     }
     print(nome + ' coletado')
     return data
 
 def get_hotel_review_data(id_, nome, tipo, review):
-    usuario = review.find('a', class_='ui_header_link _1r_My98y')['href'].split('/')[-1]
-    data_avaliacao = review.find('a', class_='ui_header_link _1r_My98y').parent.text.split()
-    data_avaliacao = ' '.join(data_avaliacao[data_avaliacao.index('avaliação')+1:])
-    data_estadia = ' '.join(review.find('span', class_='_34Xs-BQm').text.split()[-3:])
-    nota = review.find(class_='nf9vGX55').find('span', class_='ui_bubble_rating')['class'][1][-2:]
-    nota = nota[0] + '.' + nota[1]
-    titulo = '\"' + review.find(class_='glasR4aX').string + '\"'
-    conteudo = '\"' + review.find('q', class_='IRsGHoPm').text + '\"'
+    try:
+        usuario = review.find('a', class_='ui_header_link _1r_My98y')['href'].split('/')[-1]
+    except:
+        usuario = 'indef'
+    try:    
+        data_avaliacao = review.find('a', class_='ui_header_link _1r_My98y').parent.text.split()
+        data_avaliacao = ' '.join(data_avaliacao[data_avaliacao.index('avaliação')+1:])
+        data_avaliacao = parse_date(data_avaliacao)
+    except:
+        data_avaliacao = 'indef'
+    try:
+        data_estadia = ' '.join(review.find('span', class_='_34Xs-BQm').text.split()[-3:])
+        data_estadia = parse_date(data_estadia)
+    except:
+        data_estadia = 'indef'
+    try:
+        nota = review.find(class_='nf9vGX55').find('span', class_='ui_bubble_rating')['class'][1][-2:]
+        nota = nota[0] + '.' + nota[1]
+    except:
+        nota = 'indef'
+    try:
+        titulo = '\"' + review.find(class_='glasR4aX').string.replace('\"','') + '\"'
+    except:
+        titulo = 'indef'
+    try:
+        conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"', "") + '\"'
+    except:
+        conteudo = 'indef'
     try:
         tipo_viagem = ' '.join(review.find('span', class_='_2bVY3aT5').text.split()[3:])
     except:
         tipo_viagem = 'indef'
     try:
-        origem = review.find('span', class_='default _3J15flPT small').text
+        origem = '\"' + review.find('span', class_='default _3J15flPT small').text + '\"'
     except:
         origem = 'indef'
 
@@ -226,14 +255,33 @@ def get_hotel_review_data(id_, nome, tipo, review):
     return data
 
 def get_restaurante_review_data(id_, nome, tipo, review):
-    usuario = review.find('div', class_='info_text pointer_cursor').text
-    data_avaliacao = review.find('span', class_='ratingDate')['title']
-    data_visita = ' '.join(review.find('div', class_='prw_rup prw_reviews_stay_date_hsx').text.split()[3:])
-    nota = review.find('span', class_='ui_bubble_rating')['class'][1][-2:]
-    nota = nota[0] + '.' + nota[1]
-    titulo = '\"'+ review.find('span', class_='noQuotes').text + '\"'
-    conteudo = '\"' + review.find('p', class_='partial_entry').text + '\"'
-    #origem = review.find(class_='userLoc')
+    try:
+        usuario = review.find('div', class_='info_text pointer_cursor').text
+    except:
+        usuario = 'indef'
+    try:    
+        data_avaliacao = review.find('span', class_='ratingDate')['title']
+        data_avaliacao = parse_date(data_avaliacao)
+    except:
+        data_avaliacao= 'indef'
+    try:
+        data_visita = ' '.join(review.find('div', class_='prw_rup prw_reviews_stay_date_hsx').text.split()[3:])
+        data_visita = parse_date(data_visita)
+    except:
+        data_visita = 'indef'
+    try:
+        nota = review.find('span', class_='ui_bubble_rating')['class'][1][-2:]
+        nota = nota[0] + '.' + nota[1]
+    except:
+        nota = 'indef'
+    try:
+        titulo = '\"'+ review.find('span', class_='noQuotes').text.replace('\"','') + '\"'
+    except:
+        titulo = 'indef'
+    try:
+        conteudo = '\"' + review.find('p', class_='partial_entry').text.replace('\"', '') + '\"'
+    except:
+        conteudo = 'indef'
     data = {
         'estabelecimento': nome,
         'estabelecimento_id': id_,
@@ -249,22 +297,36 @@ def get_restaurante_review_data(id_, nome, tipo, review):
     return data
 
 def get_atracao_review_data(id_, nome, tipo, review):
-    usuario = review.find('a', class_='_3x5_awTA ui_social_avatar inline')['href'].split('/')[-1]
+    try:
+        usuario = review.find('a', class_='_3x5_awTA ui_social_avatar inline')['href'].split('/')[-1]
+    except:
+        usuario = 'indef'
     try:
         data_avaliacao = review.find('a', class_='ui_header_link _1r_My98y').parent.text.split()
         data_avaliacao = ' '.join(data_avaliacao[data_avaliacao.index('avaliação')+1:])
+        data_avaliacao = parse_date(data_avaliacao)
     except:
         data_avaliacao = 'indef'
     try:
         data_visita = ' '.join(review.find('span', class_='_34Xs-BQm').text.split()[3:])
+        data_visita = parse_date(data_visita)
     except:
         data_visita = 'indef'
-    nota = review.find('span', class_='ui_bubble_rating')['class'][1][-2:]
-    nota = nota[0] + '.' + nota[1]
-    titulo = '\"' + review.find(class_='glasR4aX').string + '\"'
-    conteudo = '\"' + review.find('q', class_='IRsGHoPm').text + '\"'
     try:
-        origem = review.find('span', class_='default _3J15flPT small').text
+        nota = review.find('span', class_='ui_bubble_rating')['class'][1][-2:]
+        nota = nota[0] + '.' + nota[1]
+    except:
+        nota = 'indef'
+    try:
+        titulo = '\"' + review.find(class_='glasR4aX').string.replace('\'','') + '\"'
+    except:
+        titulo = 'indef'
+    try:
+        conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"','') + '\"'
+    except:
+        conteudo = 'indef'
+    try:
+        origem = '\"' + review.find('span', class_='default _3J15flPT small').text + '\"'
     except:
         origem = 'indef'
 
@@ -280,7 +342,6 @@ def get_atracao_review_data(id_, nome, tipo, review):
         'conteudo': conteudo,
         'origem': origem
     }
-    print(data)
     return data
 
 def get_hotel_review_cards(entry_url):
@@ -360,7 +421,10 @@ def get_atracao_links(url):
 #Gera, a partir de uma URl inicial, as URLS correspondentes ao avançar uma página
 def get_page_urls(initial_url, page_type):
     urls=[initial_url]
-    num_pages = get_max_num_pages(initial_url)
+    try:
+        num_pages = get_max_num_pages(initial_url)
+    except IndexError:
+        return urls
 
     if page_type in ['hotel', 'restaurante', 'atracao']:
         entries_by_page = 30
@@ -460,6 +524,9 @@ def create_files():
     open('hoteis.csv', 'w').close()
     open('restaurantes.csv','w').close()
     open('atracoes.csv','w').close()
+    open('avaliacoes-hoteis.csv','w').close()
+    open('avaliacoes-restaurantes.csv','w').close()
+    open('avaliacoes-atracoes.csv', 'w').close()
 
 if __name__ == "__main__":
     
