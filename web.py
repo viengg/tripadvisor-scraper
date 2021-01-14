@@ -5,10 +5,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial, reduce
 
-
+session = requests.Session()
 def get_soup(url):
     time.sleep(1)
-    r = requests.get(url)
+    r = session.get(url)
     soup = BeautifulSoup(r.text, 'lxml')
     return soup
 
@@ -20,6 +20,10 @@ def get_hotel_data(entry_link):
     nome = soup.find(id="HEADING").string.strip()
     cidade = soup.find('a', id='global-nav-tourism').string
 
+    try:
+        preco = soup.find('a', class_='bookableOffer')['data-pernight']
+    except:
+        preco = 'indef'
     try:
         endereco = soup.find(class_='_3ErVArsu jke2_wbp').string.replace(","," |")
     except:
@@ -65,7 +69,7 @@ def get_hotel_data(entry_link):
         lat = "indef"
         lon = "indef"
 
-    #comentarios = coleta_reviews(hotel_id, nome, 'hotel', 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
+    comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
     data ={
         'hotel_id': hotel_id,
         'nome': nome,
@@ -81,9 +85,10 @@ def get_hotel_data(entry_link):
         'atracoes_perto': atracoes_perto,
         'latitude': lat,
         'longitude': lon,
-        'fonte': entry_url
+        'fonte': entry_url,
+        'comentarios': comentarios
     }
-    print(data)
+    print(nome+' coletado')
     return data 
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
@@ -119,6 +124,7 @@ def get_restaurante_data(entry_link):
         lat = 'indef'
         lon = 'indef'
     
+    comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
     data = {
         'restaurante_id': restaurant_id,
         'nome': nome,
@@ -128,9 +134,10 @@ def get_restaurante_data(entry_link):
         'qtd_avaliacoes': avaliacoes,
         'latitude': lat,
         'longitude': lon,
-        'fonte': entry_url
+        'fonte': entry_url,
+        'comentarios': comentarios
     }
-    print(data)
+    print(nome + ' coletado')
     return data
 
 #A partir de um link de atracao, entra na pagina e extrai seus dados
@@ -167,6 +174,7 @@ def get_atracao_data(entry_link):
         lat = 'indef'
         lon = 'indef'
     
+    comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
     data = {
         'atracao_id': atracao_id,
         'nome': nome,
@@ -176,9 +184,10 @@ def get_atracao_data(entry_link):
         'qtd_avaliacoes': avaliacoes,
         'latitude': lat,
         'longitude': lon,
-        'fonte': entry_url
+        'fonte': entry_url,
+        'comentarios': comentarios
     }
-    print(data)
+    print(nome + ' coletado')
     return data
 
 def get_hotel_review_data(id_, nome, tipo, review):
@@ -212,7 +221,6 @@ def get_hotel_review_data(id_, nome, tipo, review):
         'tipo_viagem': tipo_viagem,
         'origem': origem
     }
-    print(data)
     return data
 
 def get_restaurante_review_data(id_, nome, tipo, review):
@@ -236,7 +244,6 @@ def get_restaurante_review_data(id_, nome, tipo, review):
         'conteudo': conteudo
     }
     
-    print(data)
     return data
 
 def get_atracao_review_data(id_, nome, tipo, review):
@@ -271,7 +278,6 @@ def get_atracao_review_data(id_, nome, tipo, review):
         'conteudo': conteudo,
         'origem': origem
     }
-
     print(data)
     return data
 
@@ -295,19 +301,16 @@ def coleta_review_por_url(get_review_data, get_review_cards, review_url):
     data = map(get_review_data, review_cards)
     return list(data)
 
-def coleta_reviews(nome, id_, tipo, tipo_review, entry_url, get_review_data, get_review_cards):
+def coleta_reviews(nome, id_, tipo_review, entry_url, get_review_data, get_review_cards):
     review_urls = get_page_urls(entry_url, tipo_review)
-    get_review_data = partial(get_review_data, id_, nome, tipo)
+
+    get_review_data = partial(get_review_data, id_, nome, tipo_review)
     data_extractor = partial(coleta_review_por_url, get_review_data, get_review_cards)
+    
     with ThreadPoolExecutor() as pool:
         d = pool.map(data_extractor, review_urls)
     data = reduce(lambda acc, x: acc + x, d)
-   
-    '''for review_url in review_urls:
-        review_cards = get_review_cards(review_url)
-        with ThreadPoolExecutor() as pool:
-            d = pool.map(get_review_data, review_cards)
-        data += list(d)'''
+
     return data
 
 #Infere o tipo a partir do nome do hotel
@@ -477,7 +480,7 @@ if __name__ == "__main__":
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
     '''
     start_time = time.time()
-    coleta_reviews('','','', 'atracao-review',
+    coleta_reviews('','','atracao-review',
     'https://www.tripadvisor.com.br/Attraction_Review-g303389-d4601254-Reviews-or5-Centro_Historico_de_Ouro_Preto-Ouro_Preto_State_of_Minas_Gerais.html',
     get_atracao_review_data,
     get_atracao_review_cards)
