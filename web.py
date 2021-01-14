@@ -75,7 +75,7 @@ def get_hotel_data(entry_link):
         lat = "indef"
         lon = "indef"
 
-    if int(qtd_avaliacoes) > 0:
+    if qtd_avaliacoes != '0':
         comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
         write_to_file('avaliacoes-hoteis.csv', comentarios)
     data ={
@@ -116,7 +116,7 @@ def get_restaurante_data(entry_link):
     try:
         avaliacoes = soup.find('a', class_='_10Iv7dOs').string.split()[0].replace('.','')
     except:
-        avaliacoes = 'indef'
+        avaliacoes = '0'
     try:
         nota = soup.find('span', class_='r2Cf69qf').text.strip().replace(',','.')
     except:
@@ -132,7 +132,7 @@ def get_restaurante_data(entry_link):
         lat = 'indef'
         lon = 'indef'
     
-    if int(avaliacoes) > 0:
+    if avaliacoes != '0':
         comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
         write_to_file('avaliacoes-restaurantes.csv', comentarios)
     data = {
@@ -183,7 +183,7 @@ def get_atracao_data(entry_link):
         lat = 'indef'
         lon = 'indef'
     
-    if int(avaliacoes) > 0:
+    if avaliacoes != '0':
         comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
         write_to_file('avaliacoes-atracoes.csv', comentarios)
     data = {
