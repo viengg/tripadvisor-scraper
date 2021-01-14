@@ -4,6 +4,7 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial, reduce
+import os
 
 session = requests.Session()
 def get_soup(url):
@@ -69,7 +70,7 @@ def get_hotel_data(entry_link):
         lat = "indef"
         lon = "indef"
 
-    comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
+    #comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
     data ={
         'hotel_id': hotel_id,
         'nome': nome,
@@ -87,7 +88,7 @@ def get_hotel_data(entry_link):
         'latitude': lat,
         'longitude': lon,
         'fonte': entry_url,
-        'comentarios': comentarios
+        #'comentarios': comentarios
     }
     print(nome+' coletado')
     return data 
@@ -125,7 +126,7 @@ def get_restaurante_data(entry_link):
         lat = 'indef'
         lon = 'indef'
     
-    comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
+    #comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
     data = {
         'restaurante_id': restaurant_id,
         'nome': nome,
@@ -136,7 +137,7 @@ def get_restaurante_data(entry_link):
         'latitude': lat,
         'longitude': lon,
         'fonte': entry_url,
-        'comentarios': comentarios
+        #'comentarios': comentarios
     }
     print(nome + ' coletado')
     return data
@@ -175,7 +176,7 @@ def get_atracao_data(entry_link):
         lat = 'indef'
         lon = 'indef'
     
-    comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
+    #comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
     data = {
         'atracao_id': atracao_id,
         'nome': nome,
@@ -186,7 +187,7 @@ def get_atracao_data(entry_link):
         'latitude': lat,
         'longitude': lon,
         'fonte': entry_url,
-        'comentarios': comentarios
+        #'comentarios': comentarios
     }
     print(nome + ' coletado')
     return data
@@ -391,6 +392,9 @@ def get_page_urls(initial_url, page_type):
 #Escreve os dados coletados em um arquivo .csv
 def write_to_file(filename, data):
     with open(filename, "a") as f:
+        if os.stat(filename).st_size == 0:
+            header_buffer = ','.join(data[0].keys()) + '\n'
+            f.write(header_buffer)
         for instance in data:
             values = instance.values()
             buffer = ",".join(values)
@@ -453,26 +457,12 @@ def coleta_cidades(city_url_list):
         coleta_por_cidade(city_url)
 
 def create_files():
-    hotel_header = ['hotel_id', 'nome', 'endereco', 'cidade', 'preco', 'tipo', 'qtd_quartos',
-    'qtd_avaliacoes', 'nota', 'categoria', 'nota_pedestres',
-    'restaurantes_perto', 'atracoes_perto', 'latitude', 'longitude',
-    'fonte']
-    restaurante_header = ['restaurante_id', 'nome', 'endereco', 'cidade', 'nota', 'qtd_avaliacoes',
-    'latitude', 'longitude', 'fonte']
-    atracao_header = ['atracao_id', 'nome', 'endereco', 'cidade', 'nota', 'qtd_avaliacoes',
-    'latitude', 'longitude', 'fonte']
-
-    with open('hoteis.csv','w') as f:
-        header_buffer = ",".join(hotel_header) + "\n"
-        f.write(header_buffer)
-    with open('restaurantes.csv', 'w') as f:
-        header_buffer = ",".join(restaurante_header) + "\n"
-        f.write(header_buffer)
-    with open('atracoes.csv', 'w') as f:
-        header_buffer = ",".join(atracao_header) + "\n"
-        f.write(header_buffer)
+    open('hoteis.csv', 'w').close()
+    open('restaurantes.csv','w').close()
+    open('atracoes.csv','w').close()
 
 if __name__ == "__main__":
+    
     
     start_time = time.time()
     cidades_url = ['https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html', 
