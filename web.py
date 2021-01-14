@@ -31,11 +31,11 @@ def get_hotel_data(entry_link):
     except:
         preco = 'indef'
     try:
-        endereco = soup.find(class_='_3ErVArsu jke2_wbp').string.replace(","," |")
+        endereco = '\"' + soup.find(class_='_3ErVArsu jke2_wbp').string + '\"'
     except:
         endereco = "indef"
     try:
-        qtd_avaliacoes = soup.find("span", class_='_33O9dg0j').string.split()[0]
+        qtd_avaliacoes = soup.find("span", class_='_33O9dg0j').string.split()[0].replace('.','')
     except:
         qtd_avaliacoes = "0"
     try:
@@ -110,11 +110,11 @@ def get_restaurante_data(entry_link):
     cidade = soup.find('a', id='global-nav-tourism').string
 
     try:
-        endereco = soup.find('a', {'class' : '_15QfMZ2L', 'href': '#MAPVIEW'}).string.strip().replace(',',' |')
+        endereco = '\"' + soup.find('a', {'class' : '_15QfMZ2L', 'href': '#MAPVIEW'}).string.strip() + '\"'
     except:
         endereco = 'indef'
     try:
-        avaliacoes = soup.find('a', class_='_10Iv7dOs').string.split()[0]
+        avaliacoes = soup.find('a', class_='_10Iv7dOs').string.split()[0].replace('.','')
     except:
         avaliacoes = 'indef'
     try:
@@ -145,7 +145,6 @@ def get_restaurante_data(entry_link):
         'latitude': lat,
         'longitude': lon,
         'fonte': entry_url,
-        'comentarios': comentarios
     }
     print(nome + ' coletado')
     return data
@@ -155,17 +154,17 @@ def get_atracao_data(entry_link):
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
     soup = get_soup(entry_url)
     try:
-        nome = soup.find('h1', id='HEADING').string.strip()
+        nome = soup.find('h1', id='HEADING').string.strip().replace('\"','')
     except:
         nome = 'indef'
     cidade = soup.find('a', id='global-nav-tourism').string
 
     try:
-        endereco = soup.find('div', class_='LjCWTZdN').findAll('span')[1].string.replace(',', ' |')
+        endereco = '\"' + soup.find('div', class_='LjCWTZdN').findAll('span')[1].string + '\"'
     except:
         endereco = 'indef'
     try:
-        avaliacoes = soup.find('span', class_='_3WF_jKL7 _1uXQPaAr').string.split()[0]
+        avaliacoes = soup.find('span', class_='_3WF_jKL7 _1uXQPaAr').string.split()[0].replace('.','')
     except:
         avaliacoes = '0'
     try:
@@ -370,7 +369,7 @@ def coleta_reviews(nome, id_, tipo_review, entry_url, get_review_data, get_revie
     get_review_data = partial(get_review_data, id_, nome, tipo_review)
     data_extractor = partial(coleta_review_por_url, get_review_data, get_review_cards)
     
-    with ThreadPoolExecutor() as pool:
+    with ThreadPoolExecutor(4) as pool:
         d = pool.map(data_extractor, review_urls)
     data = reduce(lambda acc, x: acc + x, d)
 
@@ -477,7 +476,7 @@ def coleta_dados(initial_url, data_extractor, get_links, page_type):
     data = []
     for url in page_urls:
         links = get_links(url)
-        with ThreadPoolExecutor() as pool:
+        with ThreadPoolExecutor(4) as pool:
             d = pool.map(data_extractor, links)
         data += list(d)
 
@@ -529,18 +528,8 @@ def create_files():
     open('avaliacoes-atracoes.csv', 'w').close()
 
 if __name__ == "__main__":
-    
-    
     start_time = time.time()
     cidades_url = ['https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html', 
     'https://www.tripadvisor.com.br/Tourism-g303386-Mariana_State_of_Minas_Gerais-Vacations.html']
     coleta_cidades(cidades_url)
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
-    
-    '''
-    start_time = time.time()
-    coleta_reviews('','','atracao-review',
-    'https://www.tripadvisor.com.br/Attraction_Review-g303389-d4601254-Reviews-or5-Centro_Historico_de_Ouro_Preto-Ouro_Preto_State_of_Minas_Gerais.html',
-    get_atracao_review_data,
-    get_atracao_review_cards)
-    print(f'tempo de execução: {(time.time() - start_time)/60} minutos')'''
