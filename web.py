@@ -22,6 +22,7 @@ def parse_date(date):
 #e extrai seus dados
 def get_hotel_data(entry_link):
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
+    time.sleep(5) #Precisa esperar pra coletar os precos corretamente
     soup = get_soup(entry_url)
     try:
         nome = soup.find(id="HEADING").string.strip()
@@ -77,10 +78,9 @@ def get_hotel_data(entry_link):
     except:
         lat = "indef"
         lon = "indef"
-
-    if qtd_avaliacoes != '0':
+    '''if qtd_avaliacoes != '0':
         comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
-        write_to_file('avaliacoes-hoteis.csv', comentarios)
+        write_to_file('avaliacoes-hoteis.csv', comentarios)'''
     data ={
         'hotel_id': hotel_id,
         'nome': nome,
@@ -99,7 +99,7 @@ def get_hotel_data(entry_link):
         'longitude': lon,
         'fonte': entry_url,
     }
-    print(nome+' coletado')
+    print(nome + ' coletado')
     return data 
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
@@ -134,6 +134,10 @@ def get_restaurante_data(entry_link):
     except:
         lat = 'indef'
         lon = 'indef'
+    try:
+        faixa_preco = soup.find(string='FAIXA DE PREÇO').parent.next_sibling.text
+    except:
+        faixa_preco = 'indef'
     
     if avaliacoes != '0':
         comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
@@ -145,6 +149,7 @@ def get_restaurante_data(entry_link):
         'cidade': cidade,
         'nota': nota,
         'qtd_avaliacoes': avaliacoes,
+        'faixa_preco': faixa_preco,
         'latitude': lat,
         'longitude': lon,
         'fonte': entry_url,
@@ -259,8 +264,15 @@ def get_hotel_review_data(id_, nome, tipo, review):
 def get_restaurante_review_data(id_, nome, tipo, review):
     try:
         usuario = review.find('div', class_='info_text pointer_cursor').text
+        usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
+        usuario_soup = get_soup(usuario_url)
+        try:
+            origem = '\"' + usuario_soup.find('span', class_='_2VknwlEe _3J15flPT default').text + '\"'
+        except:
+            origem = 'indef'
     except:
         usuario = 'indef'
+        origem = 'indef'
     try:    
         data_avaliacao = review.find('span', class_='ratingDate')['title']
         data_avaliacao = parse_date(data_avaliacao)
@@ -293,9 +305,9 @@ def get_restaurante_review_data(id_, nome, tipo, review):
         'data_visita': data_visita,
         'nota': nota,
         'titulo': titulo,
-        'conteudo': conteudo
+        'conteudo': conteudo,
+        'origem': origem
     }
-    
     return data
 
 def get_atracao_review_data(id_, nome, tipo, review):
