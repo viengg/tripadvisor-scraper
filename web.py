@@ -6,11 +6,14 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial, reduce
 import os
 import dateparser
+from selenium import webdriver
 
 session = requests.Session()
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'}
+
 def get_soup(url):
     time.sleep(1)
-    r = session.get(url)
+    r = session.get(url, headers=headers)
     soup = BeautifulSoup(r.text, 'lxml')
     return soup
 
@@ -18,12 +21,23 @@ def parse_date(date):
     date_parsed = str(dateparser.parse(date))
     return date_parsed.split()[0]
 
+def get_soup_selenium(url):
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    with webdriver.Chrome(options=chrome_options) as wd:
+        wd.get(url)
+        time.sleep(2)
+        html = wd.page_source
+    soup = BeautifulSoup(html, 'lxml')
+    return soup
+
 #A partir de um link de hotel, entra na pagina do hotel em questão
 #e extrai seus dados
 def get_hotel_data(entry_link):
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
-    time.sleep(5) #Precisa esperar pra coletar os precos corretamente
-    soup = get_soup(entry_url)
+    soup = get_soup_selenium(entry_url)
     try:
         nome = soup.find(id="HEADING").string.strip()
     except:
@@ -78,9 +92,9 @@ def get_hotel_data(entry_link):
     except:
         lat = "indef"
         lon = "indef"
-    '''if qtd_avaliacoes != '0':
+    if qtd_avaliacoes != '0':
         comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
-        write_to_file('avaliacoes-hoteis.csv', comentarios)'''
+        write_to_file('avaliacoes-hoteis.csv', comentarios)
     data ={
         'hotel_id': hotel_id,
         'nome': nome,
@@ -99,7 +113,7 @@ def get_hotel_data(entry_link):
         'longitude': lon,
         'fonte': entry_url,
     }
-    print(nome + ' coletado')
+    print(nome + ' preco:' + preco)
     return data 
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
