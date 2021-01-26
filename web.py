@@ -35,7 +35,7 @@ def get_soup_selenium(url):
 
 #A partir de um link de hotel, entra na pagina do hotel em questão
 #e extrai seus dados
-def get_hotel_data(entry_link):
+def get_hotel_data(cidade, entry_link):
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
     soup = get_soup_selenium(entry_url)
     try:
@@ -94,7 +94,7 @@ def get_hotel_data(entry_link):
         lon = "indef"
     if qtd_avaliacoes != '0':
         comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
-        write_to_file('avaliacoes-hoteis.csv', comentarios)
+        write_to_file(cidade+'/avaliacoes-hoteis.csv', comentarios)
     data ={
         'hotel_id': hotel_id,
         'nome': nome,
@@ -117,7 +117,7 @@ def get_hotel_data(entry_link):
     return data 
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
-def get_restaurante_data(entry_link):
+def get_restaurante_data(cidade, entry_link):
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
     soup = get_soup(entry_url)
     try:
@@ -155,7 +155,7 @@ def get_restaurante_data(entry_link):
     
     if avaliacoes != '0':
         comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
-        write_to_file('avaliacoes-restaurantes.csv', comentarios)
+        write_to_file(cidade+'/avaliacoes-restaurantes.csv', comentarios)
     data = {
         'restaurante_id': restaurant_id,
         'nome': nome,
@@ -172,7 +172,7 @@ def get_restaurante_data(entry_link):
     return data
 
 #A partir de um link de atracao, entra na pagina e extrai seus dados
-def get_atracao_data(entry_link):
+def get_atracao_data(cidade, entry_link):
     entry_url = 'https://www.tripadvisor.com.br' + entry_link
     soup = get_soup(entry_url)
     try:
@@ -207,7 +207,7 @@ def get_atracao_data(entry_link):
     
     if avaliacoes != '0':
         comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
-        write_to_file('avaliacoes-atracoes.csv', comentarios)
+        write_to_file(cidade+'/avaliacoes-atracoes.csv', comentarios)
     data = {
         'atracao_id': atracao_id,
         'nome': nome,
@@ -499,9 +499,9 @@ def get_max_num_pages(url):
     return int(num_pages)
 
 #Coleta dados de hoteis/restaurantes/atracoes (lista de listas)
-def coleta_dados(initial_url, data_extractor, get_links, page_type):
+def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type):
     page_urls = get_page_urls(initial_url, page_type)
-
+    data_extractor = partial(data_extractor, cidade)
     data = []
     for url in page_urls:
         links = get_links(url)
@@ -511,19 +511,19 @@ def coleta_dados(initial_url, data_extractor, get_links, page_type):
 
     return data
 
-def coleta_hoteis(url):
-    hoteis = coleta_dados(url, get_hotel_data, get_hotel_links, 'hotel')
-    write_to_file('hoteis.csv', hoteis)
+def coleta_hoteis(cidade, url):
+    hoteis = coleta_dados(cidade, url, get_hotel_data, get_hotel_links, 'hotel')
+    write_to_file(cidade+'/hoteis.csv', hoteis)
     print(f'\n{len(hoteis)} hoteis coletados\n')
 
-def coleta_restaurantes(url):
-    restaurantes = coleta_dados(url, get_restaurante_data, get_restaurante_links, 'restaurante')
-    write_to_file('restaurantes.csv', restaurantes)
+def coleta_restaurantes(cidade, url):
+    restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante')
+    write_to_file(cidade+'/restaurantes.csv', restaurantes)
     print(f'\n{len(restaurantes)} restaurantes coletados\n')
 
-def coleta_atracoes(url):
-    atracoes = coleta_dados(url, get_atracao_data, get_atracao_links, 'atracao')
-    write_to_file('atracoes.csv', atracoes)
+def coleta_atracoes(cidade, url):
+    atracoes = coleta_dados(cidade, url, get_atracao_data, get_atracao_links, 'atracao')
+    write_to_file(cidade+'/atracoes.csv', atracoes)
     print(f'\n{len(atracoes)} atracoes coletadas\n')
 
 def get_links_from_city(city_url):
@@ -537,28 +537,42 @@ def get_links_from_city(city_url):
     
     return (hotel_url, restaurante_url, atracao_url)
 
-def coleta_por_cidade(city_url):
+def coleta_por_cidade(city_name, city_url):
     hotel_url, restaurante_url, atracao_url = get_links_from_city(city_url)
-    coleta_hoteis(hotel_url)
-    coleta_restaurantes(restaurante_url)
-    coleta_atracoes(atracao_url)
+    coleta_hoteis(city_name, hotel_url)
+    coleta_restaurantes(city_name, restaurante_url)
+    coleta_atracoes(city_name, atracao_url)
 
-def coleta_cidades(city_url_list):
-    create_files()
-    for city_url in city_url_list:
-        coleta_por_cidade(city_url)
+def coleta_cidades(cidades):
+    for nome_cidade, url in cidades.items():
+        coleta_por_cidade(nome_cidade, url)
 
-def create_files():
-    open('hoteis.csv', 'w').close()
-    open('restaurantes.csv','w').close()
-    open('atracoes.csv','w').close()
-    open('avaliacoes-hoteis.csv','w').close()
-    open('avaliacoes-restaurantes.csv','w').close()
-    open('avaliacoes-atracoes.csv', 'w').close()
+def clear_files(nome_cidades):
+    for cidade in nome_cidades:
+        open(cidade+'/hoteis.csv', 'w').close()
+        open(cidade+'/restaurantes.csv','w').close()
+        open(cidade+'/atracoes.csv','w').close()
+        open(cidade+'/avaliacoes-hoteis.csv','w').close()
+        open(cidade+'/avaliacoes-restaurantes.csv','w').close()
+        open(cidade+'/avaliacoes-atracoes.csv', 'w').close()
+
+def make_dirs(nome_cidades):
+    for nome in nome_cidades:
+        if not os.path.exists(nome):
+            os.mkdir(nome)
 
 if __name__ == "__main__":
     start_time = time.time()
-    cidades_url = ['https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html', 
-    'https://www.tripadvisor.com.br/Tourism-g303386-Mariana_State_of_Minas_Gerais-Vacations.html']
-    coleta_cidades(cidades_url)
+    cidades = {
+        'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html',
+        'Mariana': 'https://www.tripadvisor.com.br/Tourism-g303386-Mariana_State_of_Minas_Gerais-Vacations.html'
+    }
+    nome_cidades = cidades.keys()
+    make_dirs(nome_cidades)
+
+    clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
+    if clear_flag is True:
+        clear_files(nome_cidades)
+    
+    coleta_cidades(cidades)
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
