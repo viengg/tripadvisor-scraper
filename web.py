@@ -98,7 +98,7 @@ def get_hotel_data(city_name, entry_link):
         lat = "indef"
         lon = "indef"
     if qtd_avaliacoes != '0':
-        comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
+        comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', int(qtd_avaliacoes), entry_url, get_hotel_review_data, get_hotel_review_cards)
         print('escrevendo comentarios')
         write_to_file(os.path.join(city_name, 'avaliacoes-hoteis.csv'), comentarios)
     data ={
@@ -163,7 +163,7 @@ def get_restaurante_data(city_name, entry_link):
         faixa_preco = 'indef'
     
     '''if avaliacoes != '0':
-        comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
+        comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', int(avaliacoes), entry_url, get_restaurante_review_data, get_restaurante_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-restaurantes.csv'), comentarios)'''
     data = {
         'restaurante_id': restaurant_id,
@@ -218,7 +218,7 @@ def get_atracao_data(city_name, entry_link):
         lon = 'indef'
     
     if avaliacoes != '0':
-        comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
+        comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', int(avaliacoes), entry_url, get_atracao_review_data, get_atracao_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-atracoes.csv'), comentarios)
     data = {
         'atracao_id': atracao_id,
@@ -404,8 +404,10 @@ def coleta_review_por_url(get_review_data, get_review_cards, review_url):
     data = map(get_review_data, review_cards)
     return list(data)
 
-def coleta_reviews(nome, id_, tipo_review, entry_url, get_review_data, get_review_cards):
+def coleta_reviews(nome, id_, tipo_review, qtd_avaliacoes, entry_url, get_review_data, get_review_cards):
     review_urls = get_page_urls(entry_url, tipo_review)
+    if qtd_avaliacoes > 1000:
+        review_urls = filter_old_reviews(review_urls, tipo_review)
 
     get_review_data = partial(get_review_data, id_, nome, tipo_review)
     data_extractor = partial(coleta_review_por_url, get_review_data, get_review_cards)
@@ -462,7 +464,7 @@ def get_atracao_links(url):
 def get_page_urls(initial_url, page_type):
     urls=[initial_url]
     try:
-        num_pages = get_max_num_pages(initial_url)
+        num_pages = get_max_num_pages(initial_url, page_type)
     except IndexError:
         return urls
 
@@ -501,14 +503,17 @@ def write_to_file(filename, data):
             f.write(header_buffer)
         for instance in data:
             values = instance.values()
-            if len(values) is not 0:
+            if len(values) != 0:
                 buffer = ",".join(values)
                 f.write(buffer+"\n")
 
 #Retorna o numero de paginas total
-def get_max_num_pages(url):
+def get_max_num_pages(url, page_type):
     soup = get_soup(url)
-    num_pages = soup.findAll('a', class_="pageNum")[-1].string
+    if 'review' in page_type:
+        num_pages = soup.find('div', id='REVIEWS').findAll('a', class_="pageNum")[-1].string
+    else:
+        num_pages = soup.findAll('a', class_="pageNum")[-1].string
     return int(num_pages)
 
 #Coleta dados de hoteis/restaurantes/atracoes (lista de listas)
@@ -569,6 +574,47 @@ def clear_files(nome_cidades):
         #open(os.path.join(cidade,'avaliacoes-restaurantes.csv'),'w').close()
         open(os.path.join(cidade,'avaliacoes-atracoes.csv'), 'w').close()
 
+# Retorno a indice em review_urls que contem o ultimo comentario de year
+def binary_search(review_urls, tipo, low, high, year, index): 
+  
+    if high >= low: 
+        
+        # Carrega os reviews da pagina no meio do vetor
+        mid = (high + low) // 2
+        
+        if tipo == 'atracao-review':
+            extractor = partial(get_atracao_review_data,'','','')
+            reviews = coleta_review_por_url(extractor, get_atracao_review_cards, review_urls[mid])
+        elif tipo == 'hotel-review':
+            extractor = partial(get_hotel_review_data,'','','')
+            reviews = coleta_review_por_url(extractor, get_hotel_review_cards, review_urls[mid])
+        else:
+            extractor = partial(get_restaurante_review_data,'','','')
+            reviews = coleta_review_por_url(extractor, get_restaurante_review_cards, review_urls[mid])
+
+        for review in reviews:
+            if review['data_avaliacao'] != 'indef':
+                review_year = int(review['data_avaliacao'].split('-')[0])
+                break
+        
+
+        # Se a ano do review da pagina eh maior que o ano limite, tenho
+        # que percorrer pelo menos ate "mid" e continua indo para a direita
+        if review_year >= year: 
+            return binary_search(review_urls, tipo, mid + 1, high, year, mid) 
+  
+        # Caso contrario, eu "passei do ponto" e tenho que ir para a esquerda
+        else:           
+            return binary_search(review_urls, tipo, low, mid - 1, year, index)  
+  
+    else: 
+        return index
+
+# Filtra as paginas que contem reviews muito antigos
+def filter_old_reviews(review_urls, tipo):
+    index = binary_search(review_urls, tipo, 0, len(review_urls)-1, 2016, -1)
+    return review_urls[:index+1]
+
 def make_dirs(nome_cidades):
     for nome in nome_cidades:
         if not os.path.exists(nome):
@@ -582,9 +628,11 @@ if __name__ == "__main__":
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
 
-    clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
-    if clear_flag is True:
-        clear_files(nome_cidades)
+    #clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
+    #if clear_flag is True:
+    #    clear_files(nome_cidades)
     
-    coleta_cidades(cidades)
+    #coleta_cidades(cidades)
+    review_urls = get_page_urls('https://www.tripadvisor.com.br/Restaurant_Review-g303389-d1837936-Reviews-O_Passo_Pizza_Jazz-Ouro_Preto_State_of_Minas_Gerais.html', 'restaurante-review')
+    print(filter_old_reviews(review_urls, 'restaurante-review')[-1])
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
