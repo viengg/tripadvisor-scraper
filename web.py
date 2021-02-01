@@ -14,7 +14,7 @@ language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
 
 def get_soup(url):
-    time.sleep(5)
+    time.sleep(10)
     r = session.get(url, headers=headers)
     soup = BeautifulSoup(r.text, 'lxml')
     return soup
@@ -30,7 +30,7 @@ def get_soup_selenium(url):
     chrome_options.add_argument('--disable-dev-shm-usage')
     with webdriver.Chrome(options=chrome_options) as wd:
         wd.get(url)
-        time.sleep(2)
+        time.sleep(3)
         html = wd.page_source
     soup = BeautifulSoup(html, 'lxml')
     return soup
@@ -40,12 +40,15 @@ def get_soup_selenium(url):
 def get_hotel_data(city_name, entry_link):
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
+
+    cidade = soup.find('a', id='global-nav-tourism').string
+    if not cidade.replace(' ','') == city_name.replace(' ', ''):
+        return {}
+
     try:
         nome = soup.find(id="HEADING").string.strip()
     except:
         nome = 'indef'
-    cidade = soup.find('a', id='global-nav-tourism').string
-
     try:
         preco = soup.find(class_='bookableOffer')['data-pernight']
     except:
@@ -120,15 +123,18 @@ def get_hotel_data(city_name, entry_link):
     return data 
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
-def get_restaurante_data(cidade, entry_link):
+def get_restaurante_data(city_name, entry_link):
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
+
+    cidade = soup.find('a', id='global-nav-tourism').string
+    if not cidade.replace(' ','') == city_name.replace(' ', ''):
+        return {}
+
     try:
         nome = soup.find('h1', {'data-test-target':'top-info-header'}).string.replace(',', ' |')
     except:
         nome = 'indef'
-    cidade = soup.find('a', id='global-nav-tourism').string
-
     try:
         endereco = '\"' + soup.find('a', {'class' : '_15QfMZ2L', 'href': '#MAPVIEW'}).string.strip() + '\"'
     except:
@@ -156,9 +162,9 @@ def get_restaurante_data(cidade, entry_link):
     except:
         faixa_preco = 'indef'
     
-    if avaliacoes != '0':
+    '''if avaliacoes != '0':
         comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
-        write_to_file(os.path.join(cidade,'avaliacoes-restaurantes.csv'), comentarios)
+        write_to_file(os.path.join(city_name,'avaliacoes-restaurantes.csv'), comentarios)'''
     data = {
         'restaurante_id': restaurant_id,
         'nome': nome,
@@ -175,15 +181,18 @@ def get_restaurante_data(cidade, entry_link):
     return data
 
 #A partir de um link de atracao, entra na pagina e extrai seus dados
-def get_atracao_data(cidade, entry_link):
+def get_atracao_data(city_name, entry_link):
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
+    
+    cidade = soup.find('a', id='global-nav-tourism').string
+    if not cidade.replace(' ','') == city_name.replace(' ', ''):
+        return {}
+
     try:
         nome = soup.find('h1', id='HEADING').string.strip().replace('\"','')
     except:
         nome = 'indef'
-    cidade = soup.find('a', id='global-nav-tourism').string
-
     try:
         endereco = '\"' + soup.find('div', class_='LjCWTZdN').findAll('span')[1].string + '\"'
     except:
@@ -210,7 +219,7 @@ def get_atracao_data(cidade, entry_link):
     
     if avaliacoes != '0':
         comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
-        write_to_file(os.path.join(cidade,'avaliacoes-atracoes.csv'), comentarios)
+        write_to_file(os.path.join(city_name,'avaliacoes-atracoes.csv'), comentarios)
     data = {
         'atracao_id': atracao_id,
         'nome': nome,
@@ -281,15 +290,15 @@ def get_hotel_review_data(id_, nome, tipo, review):
 def get_restaurante_review_data(id_, nome, tipo, review):
     try:
         usuario = review.find('div', class_='info_text pointer_cursor').text
-        usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
+        '''usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
         usuario_soup = get_soup(usuario_url)
         try:
             origem = '\"' + usuario_soup.find('span', class_='_2VknwlEe _3J15flPT default').text + '\"'
         except:
-            origem = 'indef'
+            origem = 'indef'''
     except:
         usuario = 'indef'
-        origem = 'indef'
+        #origem = 'indef'
     try:    
         data_avaliacao = review.find('span', class_='ratingDate')['title']
         data_avaliacao = parse_date(data_avaliacao)
@@ -323,7 +332,7 @@ def get_restaurante_review_data(id_, nome, tipo, review):
         'nota': nota,
         'titulo': titulo,
         'conteudo': conteudo,
-        'origem': origem
+        #'origem': origem
     }
     return data
 
@@ -492,8 +501,9 @@ def write_to_file(filename, data):
             f.write(header_buffer)
         for instance in data:
             values = instance.values()
-            buffer = ",".join(values)
-            f.write(buffer+"\n")
+            if len(values) is not 0:
+                buffer = ",".join(values)
+                f.write(buffer+"\n")
 
 #Retorna o numero de paginas total
 def get_max_num_pages(url):
@@ -521,12 +531,12 @@ def coleta_hoteis(cidade, url):
 
 def coleta_restaurantes(cidade, url):
     restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante')
-    write_to_file(os.path.join(cidade,'/restaurantes.csv'), restaurantes)
+    write_to_file(os.path.join(cidade,'restaurantes.csv'), restaurantes)
     print(f'\n{len(restaurantes)} restaurantes coletados\n')
 
 def coleta_atracoes(cidade, url):
     atracoes = coleta_dados(cidade, url, get_atracao_data, get_atracao_links, 'atracao')
-    write_to_file(os.path.join(cidade, '/atracoes.csv'), atracoes)
+    write_to_file(os.path.join(cidade, 'atracoes.csv'), atracoes)
     print(f'\n{len(atracoes)} atracoes coletadas\n')
 
 def get_links_from_city(city_url):
@@ -542,7 +552,7 @@ def get_links_from_city(city_url):
 
 def coleta_por_cidade(city_name, city_url):
     hotel_url, restaurante_url, atracao_url = get_links_from_city(city_url)
-    coleta_hoteis(city_name, hotel_url)
+    #coleta_hoteis(city_name, hotel_url)
     coleta_restaurantes(city_name, restaurante_url)
     coleta_atracoes(city_name, atracao_url)
 
@@ -552,11 +562,11 @@ def coleta_cidades(cidades):
 
 def clear_files(nome_cidades):
     for cidade in nome_cidades:
-        open(os.path.join(cidade,'hoteis.csv'), 'w').close()
+        #open(os.path.join(cidade,'hoteis.csv'), 'w').close()
         open(os.path.join(cidade,'restaurantes.csv'),'w').close()
         open(os.path.join(cidade,'atracoes.csv'),'w').close()
-        open(os.path.join(cidade,'avaliacoes-hoteis.csv'),'w').close()
-        open(os.path.join(cidade,'avaliacoes-restaurantes.csv'),'w').close()
+        #open(os.path.join(cidade,'avaliacoes-hoteis.csv'),'w').close()
+        #open(os.path.join(cidade,'avaliacoes-restaurantes.csv'),'w').close()
         open(os.path.join(cidade,'avaliacoes-atracoes.csv'), 'w').close()
 
 def make_dirs(nome_cidades):
