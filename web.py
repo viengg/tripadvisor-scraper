@@ -23,23 +23,22 @@ def parse_date(date):
     date_parsed = str(dateparser.parse(date))
     return date_parsed.split()[0]
 
-def get_soup_selenium(url):
+def get_driver_selenium(url):
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    with webdriver.Chrome(options=chrome_options) as wd:
-        wd.get(url)
-        time.sleep(3)
-        html = wd.page_source
-    soup = BeautifulSoup(html, 'lxml')
-    return soup
+    wd = webdriver.Chrome(options=chrome_options)
+    wd.get(url)
+    time.sleep(10)
+    return wd
 
 #A partir de um link de hotel, entra na pagina do hotel em questão
 #e extrai seus dados
 def get_hotel_data(city_name, comentarios_flag, entry_link):
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
+    time.sleep(5)
 
     cidade = soup.find('a', id='global-nav-tourism').string
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
@@ -335,7 +334,8 @@ def get_restaurante_review_data(id_, nome, tipo, review):
     }
     return data
 
-def get_atracao_review_data(id_, nome, tipo, review):
+def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
+    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
         usuario = review.find('a', class_='_3x5_awTA ui_social_avatar inline')['href'].split('/')[-1]
     except:
@@ -361,7 +361,9 @@ def get_atracao_review_data(id_, nome, tipo, review):
     except:
         titulo = 'indef'
     try:
-        conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"','') + '\"'
+        read_more = review_selenium.find_element_by_xpath(".//span[@class='_3maEfNCR']")
+        driver.execute_script("arguments[0].click();", read_more)
+        conteudo = '\"' + review_selenium.find_element_by_xpath(".//q[@class='IRsGHoPm']").text.replace('\"','') + '\"'
     except:
         conteudo = 'indef'
     try:
@@ -381,26 +383,31 @@ def get_atracao_review_data(id_, nome, tipo, review):
         'conteudo': conteudo,
         'origem': origem
     }
+    print(data)
     return data
 
 def get_hotel_review_cards(entry_url):
     soup = get_soup(entry_url)
     review_cards = soup.findAll('div', class_='_2wrUUKlw _3hFEdNs8')
-    return review_cards
+    return review_cards, None
 
 def get_restaurante_review_cards(entry_url):
     soup = get_soup(entry_url)
     review_cards = soup.findAll('div', class_='review-container')
-    return review_cards
+    return review_cards, None
 
 def get_atracao_review_cards(entry_url):
-    soup = get_soup(entry_url)
-    review_cards = soup.findAll('div', class_='Dq9MAugU T870kzTX LnVzGwUB')
-    return review_cards
+    driver = get_driver_selenium(entry_url)
+    review_cards = driver.find_elements_by_xpath("//div[@class='Dq9MAugU T870kzTX LnVzGwUB']")
+    return review_cards, driver
 
 def coleta_review_por_url(get_review_data, get_review_cards, review_url):
-    review_cards = get_review_cards(review_url)
+    review_cards, driver = get_review_cards(review_url)
+    if driver is not None:
+        get_review_data = partial(get_review_data, driver)
     data = map(get_review_data, review_cards)
+    if driver is not None:
+        driver.close()
     return list(data)
 
 def coleta_reviews(nome, id_, tipo_review, qtd_avaliacoes, entry_url, get_review_data, get_review_cards):
@@ -635,7 +642,7 @@ if __name__ == "__main__":
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
-
+    
     tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
     comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
     mode = tipo_coleta + comentarios_flag
