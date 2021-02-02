@@ -37,7 +37,7 @@ def get_soup_selenium(url):
 
 #A partir de um link de hotel, entra na pagina do hotel em questão
 #e extrai seus dados
-def get_hotel_data(city_name, entry_link):
+def get_hotel_data(city_name, comentarios_flag, entry_link):
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
 
@@ -97,9 +97,8 @@ def get_hotel_data(city_name, entry_link):
     except:
         lat = "indef"
         lon = "indef"
-    if qtd_avaliacoes != '0':
+    if qtd_avaliacoes != '0' and comentarios_flag == 's':
         comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', int(qtd_avaliacoes), entry_url, get_hotel_review_data, get_hotel_review_cards)
-        print('escrevendo comentarios')
         write_to_file(os.path.join(city_name, 'avaliacoes-hoteis.csv'), comentarios)
     data ={
         'hotel_id': hotel_id,
@@ -123,7 +122,7 @@ def get_hotel_data(city_name, entry_link):
     return data 
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
-def get_restaurante_data(city_name, entry_link):
+def get_restaurante_data(city_name, comentarios_flag, entry_link):
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
 
@@ -162,9 +161,9 @@ def get_restaurante_data(city_name, entry_link):
     except:
         faixa_preco = 'indef'
     
-    '''if avaliacoes != '0':
+    if avaliacoes != '0' and comentarios_flag == 's':
         comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', int(avaliacoes), entry_url, get_restaurante_review_data, get_restaurante_review_cards)
-        write_to_file(os.path.join(city_name,'avaliacoes-restaurantes.csv'), comentarios)'''
+        write_to_file(os.path.join(city_name,'avaliacoes-restaurantes.csv'), comentarios)
     data = {
         'restaurante_id': restaurant_id,
         'nome': nome,
@@ -181,7 +180,7 @@ def get_restaurante_data(city_name, entry_link):
     return data
 
 #A partir de um link de atracao, entra na pagina e extrai seus dados
-def get_atracao_data(city_name, entry_link):
+def get_atracao_data(city_name, comentarios_flag, entry_link):
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
     
@@ -217,7 +216,7 @@ def get_atracao_data(city_name, entry_link):
         lat = 'indef'
         lon = 'indef'
     
-    if avaliacoes != '0':
+    if avaliacoes != '0' and comentarios_flag == 's':
         comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', int(avaliacoes), entry_url, get_atracao_review_data, get_atracao_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-atracoes.csv'), comentarios)
     data = {
@@ -517,9 +516,9 @@ def get_max_num_pages(url, page_type):
     return int(num_pages)
 
 #Coleta dados de hoteis/restaurantes/atracoes (lista de listas)
-def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type):
+def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type, comentarios_flag):
     page_urls = get_page_urls(initial_url, page_type)
-    data_extractor = partial(data_extractor, cidade)
+    data_extractor = partial(data_extractor, cidade, comentarios_flag)
     data = []
     for url in page_urls:
         links = get_links(url)
@@ -529,18 +528,18 @@ def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type):
 
     return data
 
-def coleta_hoteis(cidade, url):
-    hoteis = coleta_dados(cidade, url, get_hotel_data, get_hotel_links, 'hotel')
+def coleta_hoteis(cidade, url, comentarios_flag):
+    hoteis = coleta_dados(cidade, url, get_hotel_data, get_hotel_links, 'hotel', comentarios_flag)
     write_to_file(os.path.join(cidade,'hoteis.csv'), hoteis)
     print(f'\n{len(hoteis)} hoteis coletados\n')
 
-def coleta_restaurantes(cidade, url):
-    restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante')
+def coleta_restaurantes(cidade, url, comentarios_flag):
+    restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante', comentarios_flag)
     write_to_file(os.path.join(cidade,'restaurantes.csv'), restaurantes)
     print(f'\n{len(restaurantes)} restaurantes coletados\n')
 
-def coleta_atracoes(cidade, url):
-    atracoes = coleta_dados(cidade, url, get_atracao_data, get_atracao_links, 'atracao')
+def coleta_atracoes(cidade, url, comentarios_flag):
+    atracoes = coleta_dados(cidade, url, get_atracao_data, get_atracao_links, 'atracao', comentarios_flag)
     write_to_file(os.path.join(cidade, 'atracoes.csv'), atracoes)
     print(f'\n{len(atracoes)} atracoes coletadas\n')
 
@@ -555,24 +554,33 @@ def get_links_from_city(city_url):
     
     return (hotel_url, restaurante_url, atracao_url)
 
-def coleta_por_cidade(city_name, city_url):
+def coleta_por_cidade(city_name, city_url, mode):
     hotel_url, restaurante_url, atracao_url = get_links_from_city(city_url)
-    #coleta_hoteis(city_name, hotel_url)
-    coleta_restaurantes(city_name, restaurante_url)
-    coleta_atracoes(city_name, atracao_url)
+    if '1' in mode:
+        coleta_hoteis(city_name, hotel_url, mode[-1])
+    if '2' in mode:
+        coleta_restaurantes(city_name, restaurante_url, mode[-1])
+    if '3' in mode:
+        coleta_atracoes(city_name, atracao_url, mode[-1])
 
-def coleta_cidades(cidades):
+def coleta_cidades(cidades, mode):
     for nome_cidade, url in cidades.items():
-        coleta_por_cidade(nome_cidade, url)
+        coleta_por_cidade(nome_cidade, url, mode)
 
-def clear_files(nome_cidades):
+def clear_files(nome_cidades, mode):
     for cidade in nome_cidades:
-        #open(os.path.join(cidade,'hoteis.csv'), 'w').close()
-        open(os.path.join(cidade,'restaurantes.csv'),'w').close()
-        open(os.path.join(cidade,'atracoes.csv'),'w').close()
-        #open(os.path.join(cidade,'avaliacoes-hoteis.csv'),'w').close()
-        #open(os.path.join(cidade,'avaliacoes-restaurantes.csv'),'w').close()
-        open(os.path.join(cidade,'avaliacoes-atracoes.csv'), 'w').close()
+        if '1' in mode:
+            open(os.path.join(cidade,'hoteis.csv'), 'w').close()
+            if 's' in mode:
+                open(os.path.join(cidade,'avaliacoes-hoteis.csv'), 'w').close()
+        if '2' in mode:
+            open(os.path.join(cidade,'restaurantes.csv'), 'w').close()
+            if 's' in mode:
+                open(os.path.join(cidade,'avaliacoes-restaurantes.csv'), 'w').close()
+        if '3' in mode:
+            open(os.path.join(cidade,'atracoes.csv'), 'w').close()
+            if 's' in mode:
+                open(os.path.join(cidade,'avaliacoes-atracoes.csv'), 'w').close()
 
 # Retorno a indice em review_urls que contem o ultimo comentario de year
 def binary_search(review_urls, tipo, low, high, year, index): 
@@ -628,11 +636,14 @@ if __name__ == "__main__":
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
 
-    #clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
-    #if clear_flag is True:
-    #    clear_files(nome_cidades)
+    tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
+    comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
+    mode = tipo_coleta + comentarios_flag
+    clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
     
-    #coleta_cidades(cidades)
-    review_urls = get_page_urls('https://www.tripadvisor.com.br/Restaurant_Review-g303389-d1837936-Reviews-O_Passo_Pizza_Jazz-Ouro_Preto_State_of_Minas_Gerais.html', 'restaurante-review')
-    print(filter_old_reviews(review_urls, 'restaurante-review')[-1])
+    if clear_flag is True:
+        clear_files(nome_cidades, mode)
+    
+    coleta_cidades(cidades, mode)
+
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
