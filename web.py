@@ -509,7 +509,7 @@ def write_to_file(filename, data):
 #Retorna o numero de paginas total
 def get_max_num_pages(url, page_type):
     soup = get_soup(url)
-    if 'review' in page_type:
+    if 'restaurante-review' in page_type:
         num_pages = soup.find('div', id='REVIEWS').findAll('a', class_="pageNum")[-1].string
     else:
         num_pages = soup.findAll('a', class_="pageNum")[-1].string
