@@ -40,7 +40,7 @@ def get_driver_selenium(url):
 def get_hotel_data(city_name, comentarios_flag, entry_link):
     entry_url = trip_url + entry_link
     driver = get_driver_selenium(entry_url)
-    soup = get_soup(driver.page_source)
+    soup = BeautifulSoup(driver.page_source, 'lxml')
 
     cidade = soup.find('a', id='global-nav-tourism').string
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
