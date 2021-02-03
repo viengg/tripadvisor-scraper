@@ -14,6 +14,7 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/5
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
 REQUEST_DELAY = 30
+ONLY_REVIEWS = False
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
@@ -540,17 +541,20 @@ def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type, come
 
 def coleta_hoteis(cidade, url, comentarios_flag):
     hoteis = coleta_dados(cidade, url, get_hotel_data, get_hotel_links, 'hotel', comentarios_flag)
-    write_to_file(os.path.join(cidade,'hoteis.csv'), hoteis)
+    if not ONLY_REVIEWS:
+        write_to_file(os.path.join(cidade,'hoteis.csv'), hoteis)
     print(f'\n{len(hoteis)} hoteis coletados\n')
 
 def coleta_restaurantes(cidade, url, comentarios_flag):
     restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante', comentarios_flag)
-    write_to_file(os.path.join(cidade,'restaurantes.csv'), restaurantes)
+    if not ONLY_REVIEWS:
+        write_to_file(os.path.join(cidade,'restaurantes.csv'), restaurantes)
     print(f'\n{len(restaurantes)} restaurantes coletados\n')
 
 def coleta_atracoes(cidade, url, comentarios_flag):
     atracoes = coleta_dados(cidade, url, get_atracao_data, get_atracao_links, 'atracao', comentarios_flag)
-    write_to_file(os.path.join(cidade, 'atracoes.csv'), atracoes)
+    if not ONLY_REVIEWS:
+        write_to_file(os.path.join(cidade, 'atracoes.csv'), atracoes)
     print(f'\n{len(atracoes)} atracoes coletadas\n')
 
 def get_links_from_city(city_url):
@@ -579,15 +583,15 @@ def coleta_cidades(cidades, mode):
 
 def clear_files(nome_cidades, mode):
     for cidade in nome_cidades:
-        if '1' in mode:
+        if '1' in mode and not ONLY_REVIEWS:
             open(os.path.join(cidade,'hoteis.csv'), 'w').close()
             if 's' in mode:
                 open(os.path.join(cidade,'avaliacoes-hoteis.csv'), 'w').close()
-        if '2' in mode:
+        if '2' in mode and not ONLY_REVIEWS:
             open(os.path.join(cidade,'restaurantes.csv'), 'w').close()
             if 's' in mode:
                 open(os.path.join(cidade,'avaliacoes-restaurantes.csv'), 'w').close()
-        if '3' in mode:
+        if '3' in mode and not ONLY_REVIEWS:
             open(os.path.join(cidade,'atracoes.csv'), 'w').close()
             if 's' in mode:
                 open(os.path.join(cidade,'avaliacoes-atracoes.csv'), 'w').close()
