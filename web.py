@@ -7,14 +7,16 @@ from functools import partial, reduce
 import os
 import dateparser
 from selenium import webdriver
+import re
 
 session = requests.Session()
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'}
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
+REQUEST_DELAY = 30
 
 def get_soup(url):
-    time.sleep(10)
+    time.sleep(REQUEST_DELAY)
     r = session.get(url, headers=headers)
     soup = BeautifulSoup(r.text, 'lxml')
     return soup
@@ -30,15 +32,15 @@ def get_driver_selenium(url):
     chrome_options.add_argument('--disable-dev-shm-usage')
     wd = webdriver.Chrome(options=chrome_options)
     wd.get(url)
-    time.sleep(10)
+    time.sleep(REQUEST_DELAY)
     return wd
 
 #A partir de um link de hotel, entra na pagina do hotel em questão
 #e extrai seus dados
 def get_hotel_data(city_name, comentarios_flag, entry_link):
     entry_url = trip_url + entry_link
-    soup = get_soup(entry_url)
-    time.sleep(5)
+    driver = get_driver_selenium(entry_url)
+    soup = get_soup(driver.page_source)
 
     cidade = soup.find('a', id='global-nav-tourism').string
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
@@ -118,6 +120,7 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
         'fonte': entry_url,
     }
     print(nome + ' preco:' + preco)
+    driver.close()
     return data 
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
@@ -156,7 +159,7 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
         lat = 'indef'
         lon = 'indef'
     try:
-        faixa_preco = soup.find(string='FAIXA DE PREÇO').parent.next_sibling.text
+        faixa_preco = soup.find('span', class_='_13OzAOXO _34GKdBMV').find(re.compile('$')).text
     except:
         faixa_preco = 'indef'
     
