@@ -160,7 +160,9 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
         lat = 'indef'
         lon = 'indef'
     try:
-        faixa_preco = soup.find('span', class_='_13OzAOXO _34GKdBMV').find(re.compile('$')).text
+        faixa_preco = soup.find('span', class_='_13OzAOXO _34GKdBMV').find(string = lambda s: '$' in s)
+        if faixa_preco is None:
+            faixa_preco = 'indef'
     except:
         faixa_preco = 'indef'
     
