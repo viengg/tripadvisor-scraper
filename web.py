@@ -8,16 +8,16 @@ import os
 import dateparser
 from selenium import webdriver
 
-session = requests.Session()
+#session = requests.Session()
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'}
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
-REQUEST_DELAY = 30
-ONLY_REVIEWS = False
+REQUEST_DELAY = 10
+ONLY_REVIEWS = True
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
-    r = session.get(url, headers=headers)
+    r = requests.get(url, headers=headers)
     soup = BeautifulSoup(r.text, 'lxml')
     return soup
 
@@ -39,8 +39,9 @@ def get_driver_selenium(url):
 #e extrai seus dados
 def get_hotel_data(city_name, comentarios_flag, entry_link):
     entry_url = trip_url + entry_link
-    driver = get_driver_selenium(entry_url)
-    soup = BeautifulSoup(driver.page_source, 'lxml')
+    #driver = get_driver_selenium(entry_url)
+    #soup = BeautifulSoup(driver.page_source, 'lxml')
+    soup = get_soup(entry_url)
 
     cidade = soup.find('a', id='global-nav-tourism').string
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
@@ -120,7 +121,6 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
         'fonte': entry_url,
     }
     print(nome + ' preco:' + preco)
-    driver.close()
     return data 
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
@@ -288,6 +288,7 @@ def get_hotel_review_data(id_, nome, tipo, review):
         'tipo_viagem': tipo_viagem,
         'origem': origem
     }
+    print(data)
     return data
 
 def get_restaurante_review_data(id_, nome, tipo, review):
@@ -337,6 +338,7 @@ def get_restaurante_review_data(id_, nome, tipo, review):
         'conteudo': conteudo,
         #'origem': origem
     }
+    print(data)
     return data
 
 def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
@@ -635,7 +637,7 @@ def binary_search(review_urls, tipo, low, high, year, index):
 
 # Filtra as paginas que contem reviews muito antigos
 def filter_old_reviews(review_urls, tipo):
-    index = binary_search(review_urls, tipo, 0, len(review_urls)-1, 2016, -1)
+    index = binary_search(review_urls, tipo, 0, len(review_urls)-1, 2015, -1)
     return review_urls[:index+1]
 
 def make_dirs(nome_cidades):
@@ -646,7 +648,7 @@ def make_dirs(nome_cidades):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-        'Brumadinho': 'https://www.tripadvisor.com.br/Tourism-g1747395-Brumadinho_State_of_Minas_Gerais-Vacations.html'
+        'Diamantina': 'https://www.tripadvisor.com.br/Tourism-g303380-Diamantina_State_of_Minas_Gerais-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
