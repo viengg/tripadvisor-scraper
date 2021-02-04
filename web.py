@@ -7,6 +7,7 @@ from functools import partial, reduce
 import os
 import dateparser
 from selenium import webdriver
+import datetime
 
 #session = requests.Session()
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'}
@@ -579,10 +580,13 @@ def coleta_por_cidade(city_name, city_url, mode):
     hotel_url, restaurante_url, atracao_url = get_links_from_city(city_url)
     if '1' in mode:
         coleta_hoteis(city_name, hotel_url, mode[-1])
+        marca_data_coleta(city_name, 'hotel')
     if '2' in mode:
         coleta_restaurantes(city_name, restaurante_url, mode[-1])
+        marca_data_coleta(city_name, 'restaurante')
     if '3' in mode:
         coleta_atracoes(city_name, atracao_url, mode[-1])
+        marca_data_coleta(city_name, 'atracao')
 
 def coleta_cidades(cidades, mode):
     for nome_cidade, url in cidades.items():
@@ -648,6 +652,19 @@ def make_dirs(nome_cidades):
     for nome in nome_cidades:
         if not os.path.exists(nome):
             os.mkdir(nome)
+
+def marca_data_coleta(cidade, tipo):
+    data = str(datetime.datetime.now()).split(' ')[0]
+    if tipo == 'hotel':
+        with open(os.path.join(cidade, 'data_coleta_hotel.txt'), 'w') as f:
+            f.write(data+'\n')
+    if tipo == 'atracao':
+        with open(os.path.join(cidade, 'data_coleta_atracao.txt'), 'w') as f:
+            f.write(data+'\n')
+    if tipo == 'restaurante':
+        with open(os.path.join(cidade, 'data_coleta_restaurante.txt'), 'w') as f:
+            f.write(data+'\n')
+
 
 if __name__ == "__main__":
     start_time = time.time()
