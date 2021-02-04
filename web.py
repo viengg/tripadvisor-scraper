@@ -13,7 +13,7 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/5
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
 REQUEST_DELAY = 10
-ONLY_REVIEWS = True
+ONLY_REVIEWS = False
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
@@ -341,8 +341,8 @@ def get_restaurante_review_data(id_, nome, tipo, review):
     print(data)
     return data
 
-def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
-    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
+def get_atracao_review_data(id_, nome, tipo, review):
+    #review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
         usuario = review.find('a', class_='_3x5_awTA ui_social_avatar inline')['href'].split('/')[-1]
     except:
@@ -368,9 +368,11 @@ def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
     except:
         titulo = 'indef'
     try:
-        read_more = review_selenium.find_element_by_xpath(".//span[@class='_3maEfNCR']")
+        '''read_more = review_selenium.find_element_by_xpath(".//span[@class='_3maEfNCR']")
         driver.execute_script("arguments[0].click();", read_more)
         conteudo = '\"' + review_selenium.find_element_by_xpath(".//q[@class='IRsGHoPm']").text.replace('\"','') + '\"'
+        '''
+        conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"','') + '\"'
     except:
         conteudo = 'indef'
     try:
@@ -404,9 +406,11 @@ def get_restaurante_review_cards(entry_url):
     return review_cards, None
 
 def get_atracao_review_cards(entry_url):
-    driver = get_driver_selenium(entry_url)
-    review_cards = driver.find_elements_by_xpath("//div[@class='Dq9MAugU T870kzTX LnVzGwUB']")
-    return review_cards, driver
+    #driver = get_driver_selenium(entry_url)
+    #review_cards = driver.find_elements_by_xpath("//div[@class='Dq9MAugU T870kzTX LnVzGwUB']")
+    soup = get_soup(entry_url)
+    review_cards = soup.findAll('div', class_='Dq9MAugU T870kzTX LnVzGwUB')
+    return review_cards, None
 
 def coleta_review_por_url(get_review_data, get_review_cards, review_url):
     review_cards, driver = get_review_cards(review_url)
