@@ -14,7 +14,9 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/5
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
 REQUEST_DELAY = 10
+COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
+UPDATE_REVIEWS = False
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
@@ -101,7 +103,10 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
         lat = "indef"
         lon = "indef"
     if qtd_avaliacoes != '0' and comentarios_flag == 's':
-        comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', int(qtd_avaliacoes), entry_url, get_hotel_review_data, get_hotel_review_cards)
+        if UPDATE_REVIEWS:
+            comentarios = atualiza_reviews(cidade, nome, hotel_id, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
+        else:
+            comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', int(qtd_avaliacoes), entry_url, get_hotel_review_data, get_hotel_review_cards)
         write_to_file(os.path.join(city_name, 'avaliacoes-hoteis.csv'), comentarios)
     data ={
         'hotel_id': hotel_id,
@@ -167,7 +172,10 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
         faixa_preco = 'indef'
     
     if avaliacoes != '0' and comentarios_flag == 's':
-        comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', int(avaliacoes), entry_url, get_restaurante_review_data, get_restaurante_review_cards)
+        if UPDATE_REVIEWS:
+            comentarios = atualiza_reviews(cidade, nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
+        else:
+            comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', int(avaliacoes), entry_url, get_restaurante_review_data, get_restaurante_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-restaurantes.csv'), comentarios)
     data = {
         'restaurante_id': restaurant_id,
@@ -222,7 +230,10 @@ def get_atracao_data(city_name, comentarios_flag, entry_link):
         lon = 'indef'
     
     if avaliacoes != '0' and comentarios_flag == 's':
-        comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', int(avaliacoes), entry_url, get_atracao_review_data, get_atracao_review_cards)
+        if UPDATE_REVIEWS:
+            comentarios = atualiza_reviews(cidade, nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
+        else:
+            comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', int(avaliacoes), entry_url, get_atracao_review_data, get_atracao_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-atracoes.csv'), comentarios)
     data = {
         'atracao_id': atracao_id,
@@ -436,6 +447,42 @@ def coleta_reviews(nome, id_, tipo_review, qtd_avaliacoes, entry_url, get_review
 
     return data
 
+def atualiza_reviews(cidade, nome, id_, tipo_review, entry_url, get_review_data, get_review_cards):
+    review_urls = get_page_urls(entry_url, tipo_review)
+    get_review_data = partial(get_review_data, id_, nome, tipo_review)
+    last_scrape_date = get_last_scrape_date(cidade, tipo_review)
+    reviews_to_collect = []
+
+    for url in review_urls:
+        review_cards = get_review_cards(url)
+        for card in review_cards:
+            review = get_review_data(card)
+            if review['data-avaliacao'] != 'indef':
+                review_date = int(review['data-avaliacao'].replace('-',''))
+                # Para de coletar se a data do review é mais antiga que a
+                # data da ultima coleta
+                if review_date <= last_scrape_date:
+                    break
+                else:
+                    reviews_to_collect.append(review)
+    
+    return reviews_to_collect
+
+def get_last_scrape_date(cidade, tipo):
+    if tipo == 'hotel-review':
+        nome_arq = 'data_coleta_hotel.txt'
+    elif tipo == 'restaurante-review':
+        nome_arq = 'data_coleta_restaurante.txt'
+    elif tipo == 'atracao-review':
+        nome_arq = 'data_coleta_atracao.txt'
+    
+    with open(os.path.join(cidade, nome_arq), 'r') as f:
+        data = f.read().strip().replace('-','')
+        data = int(data)
+    
+    return data
+
+
 #Infere o tipo a partir do nome do hotel
 def get_type_by_name(name, possible_types):
     for tipo in possible_types:
@@ -596,19 +643,19 @@ def clear_files(nome_cidades, mode):
     for cidade in nome_cidades:
         if '1' in mode and not ONLY_REVIEWS:
             open(os.path.join(cidade,'hoteis.csv'), 'w').close()
-            if 's' in mode:
+            if 's' in mode and not UPDATE_REVIEWS:
                 open(os.path.join(cidade,'avaliacoes-hoteis.csv'), 'w').close()
         if '2' in mode and not ONLY_REVIEWS:
             open(os.path.join(cidade,'restaurantes.csv'), 'w').close()
-            if 's' in mode:
+            if 's' in mode and not UPDATE_REVIEWS:
                 open(os.path.join(cidade,'avaliacoes-restaurantes.csv'), 'w').close()
         if '3' in mode and not ONLY_REVIEWS:
             open(os.path.join(cidade,'atracoes.csv'), 'w').close()
-            if 's' in mode:
+            if 's' in mode and not UPDATE_REVIEWS:
                 open(os.path.join(cidade,'avaliacoes-atracoes.csv'), 'w').close()
 
 # Retorno a indice em review_urls que contem o ultimo comentario de year
-def binary_search(review_urls, tipo, low, high, year, index): 
+def binary_search(review_urls, tipo, low, high, index): 
   
     if high >= low: 
         
@@ -633,19 +680,19 @@ def binary_search(review_urls, tipo, low, high, year, index):
 
         # Se a ano do review da pagina eh maior que o ano limite, tenho
         # que percorrer pelo menos ate "mid" e continua indo para a direita
-        if review_year >= year: 
-            return binary_search(review_urls, tipo, mid + 1, high, year, mid) 
+        if review_year >= COLLECT_UNTIL: 
+            return binary_search(review_urls, tipo, mid + 1, high, mid) 
   
         # Caso contrario, eu "passei do ponto" e tenho que ir para a esquerda
         else:           
-            return binary_search(review_urls, tipo, low, mid - 1, year, index)  
+            return binary_search(review_urls, tipo, low, mid - 1, index)  
   
     else: 
         return index
 
 # Filtra as paginas que contem reviews muito antigos
 def filter_old_reviews(review_urls, tipo):
-    index = binary_search(review_urls, tipo, 0, len(review_urls)-1, 2015, -1)
+    index = binary_search(review_urls, tipo, 0, len(review_urls)-1, -1)
     return review_urls[:index+1]
 
 def make_dirs(nome_cidades):
@@ -669,7 +716,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-        'Diamantina': 'https://www.tripadvisor.com.br/Tourism-g303380-Diamantina_State_of_Minas_Gerais-Vacations.html'
+        'Brumadinho': 'https://www.tripadvisor.com.br/Tourism-g1747395-Brumadinho_State_of_Minas_Gerais-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
