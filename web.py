@@ -45,6 +45,7 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
     #driver = get_driver_selenium(entry_url)
     #soup = BeautifulSoup(driver.page_source, 'lxml')
     soup = get_soup(entry_url)
+    time.sleep(5) #Esperar ajuda a pegar o preço por algum motivo
 
     cidade = soup.find('a', id='global-nav-tourism').string
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
@@ -306,11 +307,15 @@ def get_hotel_review_data(id_, nome, tipo, review):
 def get_restaurante_review_data(id_, nome, tipo, review):
     try:
         usuario = review.find('div', class_='info_text pointer_cursor').text
-        usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
-        usuario_soup = get_soup(usuario_url)
-        try:
-            origem = '\"' + usuario_soup.find('span', class_='_2VknwlEe _3J15flPT default').text + '\"'
-        except:
+        # Só precisa pegar origem se for para escrever os restaurantes coletados
+        if not ONLY_REVIEWS:
+            usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
+            usuario_soup = get_soup(usuario_url)
+            try:
+                origem = '\"' + usuario_soup.find('span', class_='_2VknwlEe _3J15flPT default').text + '\"'
+            except:
+                origem = 'indef'
+        else:
             origem = 'indef'
     except:
         usuario = 'indef'
@@ -454,17 +459,17 @@ def atualiza_reviews(cidade, nome, id_, tipo_review, entry_url, get_review_data,
     reviews_to_collect = []
 
     for url in review_urls:
-        review_cards = get_review_cards(url)
+        review_cards, _ = get_review_cards(url)
         for card in review_cards:
             review = get_review_data(card)
-            if review['data-avaliacao'] != 'indef':
-                review_date = int(review['data-avaliacao'].replace('-',''))
+            if review['data_avaliacao'] != 'indef':
+                review_date = int(review['data_avaliacao'].replace('-',''))
                 # Para de coletar se a data do review é mais antiga que a
                 # data da ultima coleta
-                if review_date <= last_scrape_date:
-                    break
-                else:
+                if review_date > last_scrape_date:
                     reviews_to_collect.append(review)
+                else:
+                    return reviews_to_collect
     
     return reviews_to_collect
 
@@ -720,7 +725,7 @@ if __name__ == "__main__":
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
-    
+     
     tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
     comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
     mode = tipo_coleta + comentarios_flag
