@@ -295,15 +295,15 @@ def get_hotel_review_data(id_, nome, tipo, review):
 def get_restaurante_review_data(id_, nome, tipo, review):
     try:
         usuario = review.find('div', class_='info_text pointer_cursor').text
-        '''usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
+        usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
         usuario_soup = get_soup(usuario_url)
         try:
             origem = '\"' + usuario_soup.find('span', class_='_2VknwlEe _3J15flPT default').text + '\"'
         except:
-            origem = 'indef'''
+            origem = 'indef'
     except:
         usuario = 'indef'
-        #origem = 'indef'
+        origem = 'indef'
     try:    
         data_avaliacao = review.find('span', class_='ratingDate')['title']
         data_avaliacao = parse_date(data_avaliacao)
@@ -337,7 +337,7 @@ def get_restaurante_review_data(id_, nome, tipo, review):
         'nota': nota,
         'titulo': titulo,
         'conteudo': conteudo,
-        #'origem': origem
+        'origem': origem
     }
     print(data)
     return data
