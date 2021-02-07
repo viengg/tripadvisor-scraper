@@ -166,9 +166,14 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
         lat = 'indef'
         lon = 'indef'
     try:
-        faixa_preco = soup.find('span', class_='_13OzAOXO _34GKdBMV').find(string = lambda s: '$' in s)
-        if faixa_preco is None:
-            faixa_preco = 'indef'
+        categoria_preco = soup.find('span', class_='_13OzAOXO _34GKdBMV').find(string = lambda s: '$' in s)
+        if categoria_preco is None:
+            categoria_preco = 'indef'
+    except:
+        categoria_preco = 'indef'
+
+    try:
+        faixa_preco = soup.find(string='FAIXA DE PREÇO').parent.next_sibling.text
     except:
         faixa_preco = 'indef'
     
@@ -185,6 +190,7 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
         'cidade': cidade,
         'nota': nota,
         'qtd_avaliacoes': avaliacoes,
+        'categoria_preco': categoria_preco,
         'faixa_preco': faixa_preco,
         'latitude': lat,
         'longitude': lon,
