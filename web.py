@@ -33,9 +33,12 @@ def parse_date(date):
 
 def get_driver_selenium(url):
     chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument('--headless')
+    #chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('disable-infobars')
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--disable-gpu')
     wd = webdriver.Chrome(options=chrome_options)
     wd.get(url)
     time.sleep(REQUEST_DELAY)
@@ -64,6 +67,7 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
         #preco = soup.find(class_='bookableOffer')['data-pernight']
     except:
         preco = 'indef'
+    time.sleep(3)
     driver.quit()
     try:
         endereco = '\"' + soup.find(class_='_3ErVArsu jke2_wbp').string + '\"'
@@ -480,6 +484,7 @@ def coleta_review_por_url(get_review_data, get_review_cards, review_url):
         data.append(d)
     
     if driver is not None:
+        time.sleep(3)
         driver.quit()
     return data
 
@@ -785,5 +790,5 @@ if __name__ == "__main__":
     coleta_cidades(cidades, mode)
     '''
 
-    coleta_reviews('','','restaurante-review',0,'https://www.tripadvisor.com.br/Restaurant_Review-g2613515-d12884009-Reviews-Restaurante_da_Marta-Lavras_Novas_Ouro_Preto_State_of_Minas_Gerais.html', get_restaurante_review_data, get_restaurante_review_cards)
+    coleta_reviews('','','restaurante-review',0,'https://www.tripadvisor.com.br/Restaurant_Review-g303389-d17364606-Reviews-Le_Chalet_Fondue_Bistro-Ouro_Preto_State_of_Minas_Gerais.html', get_restaurante_review_data, get_restaurante_review_cards)
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
