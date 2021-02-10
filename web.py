@@ -274,7 +274,8 @@ def get_atracao_data(city_name, comentarios_flag, entry_link):
     print(nome + ' coletado')
     return data
 
-def get_hotel_review_data(id_, nome, tipo, review):
+def get_hotel_review_data(id_, nome, tipo, driver, review_selenium):
+    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
         usuario = review.find('a', class_='ui_header_link _1r_My98y')['href'].split('/')[-1]
     except:
@@ -300,7 +301,10 @@ def get_hotel_review_data(id_, nome, tipo, review):
     except:
         titulo = 'indef'
     try:
-        conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"', "") + '\"'
+        read_more = review_selenium.find_element_by_xpath(".//span[@class='_3maEfNCR']")
+        driver.execute_script("arguments[0].click();", read_more)
+        conteudo = '\"' + review_selenium.find_element_by_xpath(".//q[@class='IRsGHoPm']").text.replace('\"','') + '\"'
+        #conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"', "") + '\"'
     except:
         conteudo = 'indef'
     try:
@@ -328,7 +332,8 @@ def get_hotel_review_data(id_, nome, tipo, review):
     print(data)
     return data
 
-def get_restaurante_review_data(id_, nome, tipo, review):
+def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
+    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
         usuario = review.find('div', class_='info_text pointer_cursor').text
         # Só precisa pegar origem se for para escrever os restaurantes coletados
@@ -364,7 +369,11 @@ def get_restaurante_review_data(id_, nome, tipo, review):
     except:
         titulo = 'indef'
     try:
-        conteudo = '\"' + review.find('p', class_='partial_entry').text.replace('\"', '') + '\"'
+        read_more = review_selenium.find_element_by_xpath(".//span[@class='taLnk ulBlueLinks']")
+        driver.execute_script("arguments[0].click();", read_more)
+        conteudo = '\"' + review_selenium.find_element_by_xpath(".//p[@class='partial_entry']").text.replace('\"','') + '\"'
+
+        #conteudo = '\"' + review.find('p', class_='partial_entry').text.replace('\"', '') + '\"'
     except:
         conteudo = 'indef'
     data = {
@@ -437,14 +446,18 @@ def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
     return data
 
 def get_hotel_review_cards(entry_url):
-    soup = get_soup(entry_url)
-    review_cards = soup.findAll('div', class_='_2wrUUKlw _3hFEdNs8')
-    return review_cards, None
+    #soup = get_soup(entry_url)
+    #review_cards = soup.findAll('div', class_='_2wrUUKlw _3hFEdNs8')
+    driver = get_driver_selenium(entry_url)
+    review_cards = driver.find_elements_by_xpath("//div[@class='_2wrUUKlw _3hFEdNs8']")
+    return review_cards, driver
 
 def get_restaurante_review_cards(entry_url):
-    soup = get_soup(entry_url)
-    review_cards = soup.findAll('div', class_='review-container')
-    return review_cards, None
+    #soup = get_soup(entry_url)
+    #review_cards = soup.findAll('div', class_='review-container')
+    driver = get_driver_selenium(entry_url)
+    review_cards = driver.find_elements_by_xpath("//div[@class='review-container']")
+    return review_cards, driver
 
 def get_atracao_review_cards(entry_url):
     driver = get_driver_selenium(entry_url)
