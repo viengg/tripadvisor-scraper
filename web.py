@@ -7,6 +7,9 @@ from functools import partial, reduce
 import os
 import dateparser
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import datetime
 
 #session = requests.Session()
@@ -30,7 +33,7 @@ def parse_date(date):
 
 def get_driver_selenium(url):
     chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument('--headless')
+    #chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     wd = webdriver.Chrome(options=chrome_options)
@@ -42,10 +45,9 @@ def get_driver_selenium(url):
 #e extrai seus dados
 def get_hotel_data(city_name, comentarios_flag, entry_link):
     entry_url = trip_url + entry_link
-    #driver = get_driver_selenium(entry_url)
-    #soup = BeautifulSoup(driver.page_source, 'lxml')
-    soup = get_soup(entry_url)
-    time.sleep(5) #Esperar ajuda a pegar o preço por algum motivo
+    driver = get_driver_selenium(entry_url)
+    soup = BeautifulSoup(driver.page_source, 'lxml')
+    #soup = get_soup(entry_url)
 
     cidade = soup.find('a', id='global-nav-tourism').string
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
@@ -56,9 +58,13 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
     except:
         nome = 'indef'
     try:
-        preco = soup.find(class_='bookableOffer')['data-pernight']
+        preco =  WebDriverWait(driver, 2*REQUEST_DELAY).until(
+        EC.presence_of_element_located((By.CLASS_NAME, "bookableOffer")))
+        preco = preco.get_attribute('data-pernight')
+        #preco = soup.find(class_='bookableOffer')['data-pernight']
     except:
         preco = 'indef'
+    driver.quit()
     try:
         endereco = '\"' + soup.find(class_='_3ErVArsu jke2_wbp').string + '\"'
     except:
@@ -358,8 +364,8 @@ def get_restaurante_review_data(id_, nome, tipo, review):
     print(data)
     return data
 
-def get_atracao_review_data(id_, nome, tipo, review):
-    #review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
+def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
+    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
         usuario = review.find('a', class_='_3x5_awTA ui_social_avatar inline')['href'].split('/')[-1]
     except:
@@ -385,11 +391,11 @@ def get_atracao_review_data(id_, nome, tipo, review):
     except:
         titulo = 'indef'
     try:
-        '''read_more = review_selenium.find_element_by_xpath(".//span[@class='_3maEfNCR']")
+        read_more = review_selenium.find_element_by_xpath(".//span[@class='_3maEfNCR']")
         driver.execute_script("arguments[0].click();", read_more)
         conteudo = '\"' + review_selenium.find_element_by_xpath(".//q[@class='IRsGHoPm']").text.replace('\"','') + '\"'
-        '''
-        conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"','') + '\"'
+        
+        #conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"','') + '\"'
     except:
         conteudo = 'indef'
     try:
@@ -423,20 +429,25 @@ def get_restaurante_review_cards(entry_url):
     return review_cards, None
 
 def get_atracao_review_cards(entry_url):
-    #driver = get_driver_selenium(entry_url)
-    #review_cards = driver.find_elements_by_xpath("//div[@class='Dq9MAugU T870kzTX LnVzGwUB']")
-    soup = get_soup(entry_url)
-    review_cards = soup.findAll('div', class_='Dq9MAugU T870kzTX LnVzGwUB')
-    return review_cards, None
+    driver = get_driver_selenium(entry_url)
+    review_cards = driver.find_elements_by_xpath("//div[@class='Dq9MAugU T870kzTX LnVzGwUB']")
+    #soup = get_soup(entry_url)
+    #review_cards = soup.findAll('div', class_='Dq9MAugU T870kzTX LnVzGwUB')
+    return review_cards, driver
 
 def coleta_review_por_url(get_review_data, get_review_cards, review_url):
     review_cards, driver = get_review_cards(review_url)
     if driver is not None:
         get_review_data = partial(get_review_data, driver)
-    data = map(get_review_data, review_cards)
+
+    data = []
+    for card in review_cards:
+        d = get_review_data(card)
+        data.append(d)
+    
     if driver is not None:
-        driver.close()
-    return list(data)
+        driver.quit()
+    return data
 
 def coleta_reviews(nome, id_, tipo_review, qtd_avaliacoes, entry_url, get_review_data, get_review_cards):
     review_urls = get_page_urls(entry_url, tipo_review)
@@ -725,7 +736,7 @@ if __name__ == "__main__":
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
-     
+    ''' 
     tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
     comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
     mode = tipo_coleta + comentarios_flag
@@ -735,5 +746,7 @@ if __name__ == "__main__":
         clear_files(nome_cidades, mode)
     
     coleta_cidades(cidades, mode)
+    '''
 
+    coleta_reviews('','','atracao-review',0,'https://www.tripadvisor.com.br/Attraction_Review-g1747395-d10121590-Reviews-Serra_da_Calcada-Brumadinho_State_of_Minas_Gerais.html#REVIEWS', get_atracao_review_data, get_atracao_review_cards)
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
