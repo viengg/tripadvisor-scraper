@@ -33,7 +33,7 @@ def parse_date(date):
 
 def get_driver_selenium(url):
     chrome_options = webdriver.ChromeOptions()
-    #chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     wd = webdriver.Chrome(options=chrome_options)
@@ -369,8 +369,6 @@ def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
     except:
         titulo = 'indef'
     try:
-        read_more = review_selenium.find_element_by_xpath(".//span[@class='taLnk ulBlueLinks']")
-        driver.execute_script("arguments[0].click();", read_more)
         conteudo = '\"' + review_selenium.find_element_by_xpath(".//p[@class='partial_entry']").text.replace('\"','') + '\"'
 
         #conteudo = '\"' + review.find('p', class_='partial_entry').text.replace('\"', '') + '\"'
@@ -457,6 +455,11 @@ def get_restaurante_review_cards(entry_url):
     #review_cards = soup.findAll('div', class_='review-container')
     driver = get_driver_selenium(entry_url)
     review_cards = driver.find_elements_by_xpath("//div[@class='review-container']")
+    
+    # Ao clicar em um "ler mais", todos os outros comentarios da pagina se expandem
+    read_more = driver.find_element_by_xpath(".//span[@class='taLnk ulBlueLinks']")
+    driver.execute_script("arguments[0].click();", read_more)
+    #time.sleep(2)
     return review_cards, driver
 
 def get_atracao_review_cards(entry_url):
@@ -782,5 +785,5 @@ if __name__ == "__main__":
     coleta_cidades(cidades, mode)
     '''
 
-    coleta_reviews('','','atracao-review',0,'https://www.tripadvisor.com.br/Attraction_Review-g1747395-d10121590-Reviews-Serra_da_Calcada-Brumadinho_State_of_Minas_Gerais.html#REVIEWS', get_atracao_review_data, get_atracao_review_cards)
+    coleta_reviews('','','restaurante-review',0,'https://www.tripadvisor.com.br/Restaurant_Review-g2613515-d12884009-Reviews-Restaurante_da_Marta-Lavras_Novas_Ouro_Preto_State_of_Minas_Gerais.html', get_restaurante_review_data, get_restaurante_review_cards)
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
