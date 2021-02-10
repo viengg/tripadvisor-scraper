@@ -101,8 +101,12 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
 
     hotel_id = entry_link.split("-")[2][1:]
     try:
-        api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/hotel/{}?rn=1&rc=Hotel_Review&stayDates=2021_2_11_2021_2_12&guestInfo=1_2&placementName=Hotel_Review_MapDetail_Anchor&currency=BRL'.format(hotel_id)
-        api_json = requests.get(api_url).json()
+        # Só precisa acessar json se for pra escrever os hoteis
+        if not ONLY_REVIEWS:
+            api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/hotel/{}?rn=1&rc=Hotel_Review&stayDates=2021_2_11_2021_2_12&guestInfo=1_2&placementName=Hotel_Review_MapDetail_Anchor&currency=BRL'.format(hotel_id)
+            api_json = requests.get(api_url).json()
+        else:
+            api_json = {}
         coords = api_json['hotels'][0]['location']['geoPoint']
         lat = str(coords['latitude'])
         lon = str(coords['longitude'])
@@ -111,9 +115,9 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
         lon = "indef"
     if qtd_avaliacoes != '0' and comentarios_flag == 's':
         if UPDATE_REVIEWS:
-            comentarios = atualiza_reviews(cidade, nome, hotel_id, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
+            comentarios = atualiza_reviews(city_name, nome, hotel_id, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
         else:
-            comentarios = coleta_reviews(hotel_id, nome, 'hotel-review', int(qtd_avaliacoes), entry_url, get_hotel_review_data, get_hotel_review_cards)
+            comentarios = coleta_reviews(nome, hotel_id, 'hotel-review', int(qtd_avaliacoes), entry_url, get_hotel_review_data, get_hotel_review_cards)
         write_to_file(os.path.join(city_name, 'avaliacoes-hoteis.csv'), comentarios)
     data ={
         'hotel_id': hotel_id,
@@ -163,8 +167,12 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
         nota = 'indef'
     try:
         restaurant_id = entry_link.split('-')[2][1:]
-        api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/restaurant/{}'.format(restaurant_id)
-        api_json = requests.get(api_url).json()
+        # Só precisa acessar json se for pra escrever o restaurante
+        if not ONLY_REVIEWS:
+            api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/restaurant/{}'.format(restaurant_id)
+            api_json = requests.get(api_url).json()
+        else:
+            api_json = {}
         coords = api_json['geoPoint']
         lat = str(coords['latitude'])
         lon = str(coords['longitude'])
@@ -172,15 +180,20 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
         lat = 'indef'
         lon = 'indef'
     try:
-        faixa_preco = soup.find('span', class_='_13OzAOXO _34GKdBMV').find(string = lambda s: '$' in s)
-        if faixa_preco is None:
-            faixa_preco = 'indef'
+        categoria_preco = soup.find('span', class_='_13OzAOXO _34GKdBMV').find(string = lambda s: '$' in s)
+        if categoria_preco is None:
+            categoria_preco = 'indef'
+    except:
+        categoria_preco = 'indef'
+
+    try:
+        faixa_preco = soup.find(string='FAIXA DE PREÇO').parent.next_sibling.text
     except:
         faixa_preco = 'indef'
     
     if avaliacoes != '0' and comentarios_flag == 's':
         if UPDATE_REVIEWS:
-            comentarios = atualiza_reviews(cidade, nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
+            comentarios = atualiza_reviews(city_name, nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
         else:
             comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', int(avaliacoes), entry_url, get_restaurante_review_data, get_restaurante_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-restaurantes.csv'), comentarios)
@@ -191,6 +204,7 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
         'cidade': cidade,
         'nota': nota,
         'qtd_avaliacoes': avaliacoes,
+        'categoria_preco': categoria_preco,
         'faixa_preco': faixa_preco,
         'latitude': lat,
         'longitude': lon,
@@ -227,8 +241,12 @@ def get_atracao_data(city_name, comentarios_flag, entry_link):
         nota = 'indef'
     try:
         atracao_id = entry_link.split('-')[2][1:]
-        api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/attraction/{}'.format(atracao_id)
-        api_json = requests.get(api_url).json()
+        # Só precisa acessar json se for pra escrever a atracao
+        if not ONLY_REVIEWS:
+            api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/attraction/{}'.format(atracao_id)
+            api_json = requests.get(api_url).json()
+        else:
+            api_json = {}
         coords = api_json['geoPoint']
         lat = str(coords['latitude'])
         lon = str(coords['longitude'])
@@ -238,7 +256,7 @@ def get_atracao_data(city_name, comentarios_flag, entry_link):
     
     if avaliacoes != '0' and comentarios_flag == 's':
         if UPDATE_REVIEWS:
-            comentarios = atualiza_reviews(cidade, nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
+            comentarios = atualiza_reviews(city_name, nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
         else:
             comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', int(avaliacoes), entry_url, get_atracao_review_data, get_atracao_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-atracoes.csv'), comentarios)
@@ -317,11 +335,11 @@ def get_restaurante_review_data(id_, nome, tipo, review):
         if not ONLY_REVIEWS:
             usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
             usuario_soup = get_soup(usuario_url)
-            try:
-                origem = '\"' + usuario_soup.find('span', class_='_2VknwlEe _3J15flPT default').text + '\"'
-            except:
-                origem = 'indef'
         else:
+            usuario_soup = None
+        try:
+            origem = '\"' + usuario_soup.find('span', class_='_2VknwlEe _3J15flPT default').text + '\"'
+        except:
             origem = 'indef'
     except:
         usuario = 'indef'
@@ -657,16 +675,19 @@ def coleta_cidades(cidades, mode):
 
 def clear_files(nome_cidades, mode):
     for cidade in nome_cidades:
-        if '1' in mode and not ONLY_REVIEWS:
-            open(os.path.join(cidade,'hoteis.csv'), 'w').close()
+        if '1' in mode:
+            if not ONLY_REVIEWS:
+                open(os.path.join(cidade,'hoteis.csv'), 'w').close()
             if 's' in mode and not UPDATE_REVIEWS:
                 open(os.path.join(cidade,'avaliacoes-hoteis.csv'), 'w').close()
-        if '2' in mode and not ONLY_REVIEWS:
-            open(os.path.join(cidade,'restaurantes.csv'), 'w').close()
+        if '2' in mode:
+            if not ONLY_REVIEWS:
+                open(os.path.join(cidade,'restaurantes.csv'), 'w').close()
             if 's' in mode and not UPDATE_REVIEWS:
                 open(os.path.join(cidade,'avaliacoes-restaurantes.csv'), 'w').close()
-        if '3' in mode and not ONLY_REVIEWS:
-            open(os.path.join(cidade,'atracoes.csv'), 'w').close()
+        if '3' in mode:
+            if not ONLY_REVIEWS:
+                open(os.path.join(cidade,'atracoes.csv'), 'w').close()
             if 's' in mode and not UPDATE_REVIEWS:
                 open(os.path.join(cidade,'avaliacoes-atracoes.csv'), 'w').close()
 
@@ -732,7 +753,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-        'Brumadinho': 'https://www.tripadvisor.com.br/Tourism-g1747395-Brumadinho_State_of_Minas_Gerais-Vacations.html'
+        'Diamantina': 'https://www.tripadvisor.com.br/Tourism-g303380-Diamantina_State_of_Minas_Gerais-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
