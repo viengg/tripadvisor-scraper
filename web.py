@@ -16,6 +16,7 @@ import datetime
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'}
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
+LANGUAGES_TO_COLLECT = ['.br', ''] # '' significa para coletar em ingles
 REQUEST_DELAY = 10
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
@@ -33,7 +34,7 @@ def parse_date(date):
 
 def get_driver_selenium(url):
     chrome_options = webdriver.ChromeOptions()
-    #chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('disable-infobars')
@@ -119,9 +120,9 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
         lon = "indef"
     if qtd_avaliacoes != '0' and comentarios_flag == 's':
         if UPDATE_REVIEWS:
-            comentarios = atualiza_reviews(city_name, nome, hotel_id, 'hotel-review', entry_url, get_hotel_review_data, get_hotel_review_cards)
+            comentarios = atualiza_reviews(city_name, nome, hotel_id, 'hotel-review', entry_link, get_hotel_review_data, get_hotel_review_cards)
         else:
-            comentarios = coleta_reviews(nome, hotel_id, 'hotel-review', int(qtd_avaliacoes), entry_url, get_hotel_review_data, get_hotel_review_cards)
+            comentarios = coleta_reviews(nome, hotel_id, 'hotel-review', int(qtd_avaliacoes), entry_link, get_hotel_review_data, get_hotel_review_cards)
         write_to_file(os.path.join(city_name, 'avaliacoes-hoteis.csv'), comentarios)
     data ={
         'hotel_id': hotel_id,
@@ -197,9 +198,9 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
     
     if avaliacoes != '0' and comentarios_flag == 's':
         if UPDATE_REVIEWS:
-            comentarios = atualiza_reviews(city_name, nome, restaurant_id, 'restaurante-review', entry_url, get_restaurante_review_data, get_restaurante_review_cards)
+            comentarios = atualiza_reviews(city_name, nome, restaurant_id, 'restaurante-review', entry_link, get_restaurante_review_data, get_restaurante_review_cards)
         else:
-            comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', int(avaliacoes), entry_url, get_restaurante_review_data, get_restaurante_review_cards)
+            comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', int(avaliacoes), entry_link, get_restaurante_review_data, get_restaurante_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-restaurantes.csv'), comentarios)
     data = {
         'restaurante_id': restaurant_id,
@@ -260,9 +261,9 @@ def get_atracao_data(city_name, comentarios_flag, entry_link):
     
     if avaliacoes != '0' and comentarios_flag == 's':
         if UPDATE_REVIEWS:
-            comentarios = atualiza_reviews(city_name, nome, atracao_id, 'atracao-review', entry_url, get_atracao_review_data, get_atracao_review_cards)
+            comentarios = atualiza_reviews(city_name, nome, atracao_id, 'atracao-review', entry_link, get_atracao_review_data, get_atracao_review_cards)
         else:
-            comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', int(avaliacoes), entry_url, get_atracao_review_data, get_atracao_review_cards)
+            comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', int(avaliacoes), entry_link, get_atracao_review_data, get_atracao_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-atracoes.csv'), comentarios)
     data = {
         'atracao_id': atracao_id,
@@ -463,7 +464,7 @@ def get_restaurante_review_cards(entry_url):
     # Ao clicar em um "ler mais", todos os outros comentarios da pagina se expandem
     read_more = driver.find_element_by_xpath(".//span[@class='taLnk ulBlueLinks']")
     driver.execute_script("arguments[0].click();", read_more)
-    #time.sleep(2)
+    time.sleep(2)
     return review_cards, driver
 
 def get_atracao_review_cards(entry_url):
@@ -488,8 +489,8 @@ def coleta_review_por_url(get_review_data, get_review_cards, review_url):
         driver.quit()
     return data
 
-def coleta_reviews(nome, id_, tipo_review, qtd_avaliacoes, entry_url, get_review_data, get_review_cards):
-    review_urls = get_page_urls(entry_url, tipo_review)
+def coleta_reviews(nome, id_, tipo_review, qtd_avaliacoes, entry_link, get_review_data, get_review_cards):
+    review_urls = get_reviews_page_urls(entry_link, tipo_review)
     if qtd_avaliacoes > 1000:
         review_urls = filter_old_reviews(review_urls, tipo_review)
 
@@ -502,8 +503,8 @@ def coleta_reviews(nome, id_, tipo_review, qtd_avaliacoes, entry_url, get_review
 
     return data
 
-def atualiza_reviews(cidade, nome, id_, tipo_review, entry_url, get_review_data, get_review_cards):
-    review_urls = get_page_urls(entry_url, tipo_review)
+def atualiza_reviews(cidade, nome, id_, tipo_review, entry_link, get_review_data, get_review_cards):
+    review_urls = get_reviews_page_urls(entry_link, tipo_review)
     get_review_data = partial(get_review_data, id_, nome, tipo_review)
     last_scrape_date = get_last_scrape_date(cidade, tipo_review)
     reviews_to_collect = []
@@ -613,6 +614,14 @@ def get_page_urls(initial_url, page_type):
         urls.append(url)
         data_offset= data_offset + entries_by_page
 
+    return urls
+
+def get_reviews_page_urls(entry_link, page_type):
+    urls = []
+    for LANGUAGE in LANGUAGES_TO_COLLECT:
+        full_url = 'https://www.tripadvisor.com' + LANGUAGE + entry_link
+        urls_by_language = get_page_urls(full_url, page_type)
+        urls += urls_by_language
     return urls
 
 #Escreve os dados coletados em um arquivo .csv
@@ -790,5 +799,5 @@ if __name__ == "__main__":
     coleta_cidades(cidades, mode)
     '''
 
-    coleta_reviews('','','restaurante-review',0,'https://www.tripadvisor.com.br/Restaurant_Review-g303389-d17364606-Reviews-Le_Chalet_Fondue_Bistro-Ouro_Preto_State_of_Minas_Gerais.html', get_restaurante_review_data, get_restaurante_review_cards)
+    print(get_reviews_page_urls('/Hotel_Review-g303389-d2510559-Reviews-Pousada_Sao_Francisco_de_Paula-Ouro_Preto_State_of_Minas_Gerais.html', 'hotel-review'))
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
