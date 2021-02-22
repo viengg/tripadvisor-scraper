@@ -122,7 +122,7 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
         if UPDATE_REVIEWS:
             comentarios = atualiza_reviews(city_name, nome, hotel_id, 'hotel-review', entry_link, get_hotel_review_data, get_hotel_review_cards)
         else:
-            comentarios = coleta_reviews(nome, hotel_id, 'hotel-review', int(qtd_avaliacoes), entry_link, get_hotel_review_data, get_hotel_review_cards)
+            comentarios = coleta_reviews(nome, hotel_id, 'hotel-review', entry_link, get_hotel_review_data, get_hotel_review_cards)
         write_to_file(os.path.join(city_name, 'avaliacoes-hoteis.csv'), comentarios)
     data ={
         'hotel_id': hotel_id,
@@ -200,7 +200,7 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
         if UPDATE_REVIEWS:
             comentarios = atualiza_reviews(city_name, nome, restaurant_id, 'restaurante-review', entry_link, get_restaurante_review_data, get_restaurante_review_cards)
         else:
-            comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', int(avaliacoes), entry_link, get_restaurante_review_data, get_restaurante_review_cards)
+            comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_link, get_restaurante_review_data, get_restaurante_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-restaurantes.csv'), comentarios)
     data = {
         'restaurante_id': restaurant_id,
@@ -263,7 +263,7 @@ def get_atracao_data(city_name, comentarios_flag, entry_link):
         if UPDATE_REVIEWS:
             comentarios = atualiza_reviews(city_name, nome, atracao_id, 'atracao-review', entry_link, get_atracao_review_data, get_atracao_review_cards)
         else:
-            comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', int(avaliacoes), entry_link, get_atracao_review_data, get_atracao_review_cards)
+            comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_link, get_atracao_review_data, get_atracao_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-atracoes.csv'), comentarios)
     data = {
         'atracao_id': atracao_id,
@@ -286,13 +286,13 @@ def get_hotel_review_data(id_, nome, tipo, driver, review_selenium):
     except:
         usuario = 'indef'
     try:    
-        data_avaliacao = review.find('a', class_='ui_header_link _1r_My98y').parent.text.split()
-        data_avaliacao = ' '.join(data_avaliacao[data_avaliacao.index('avaliação')+1:])
+        data_avaliacao = review.find('a', class_='ui_header_link _1r_My98y').next_sibling.split()[3:]
+        data_avaliacao = ' '.join(data_avaliacao)
         data_avaliacao = parse_date(data_avaliacao)
     except:
         data_avaliacao = 'indef'
     try:
-        data_estadia = ' '.join(review.find('span', class_='_34Xs-BQm').text.split()[-3:])
+        data_estadia = ' '.join(review.find('span', class_='_355y0nZn').next_sibling.split())
         data_estadia = parse_date(data_estadia)
     except:
         data_estadia = 'indef'
@@ -308,7 +308,7 @@ def get_hotel_review_data(id_, nome, tipo, driver, review_selenium):
     try:
         read_more = review_selenium.find_element_by_xpath(".//span[@class='_3maEfNCR']")
         driver.execute_script("arguments[0].click();", read_more)
-        conteudo = '\"' + review_selenium.find_element_by_xpath(".//q[@class='IRsGHoPm']").text.replace('\"','') + '\"'
+        conteudo = '\"' + review_selenium.find_element_by_xpath(".//q[@class='IRsGHoPm']").text.replace('\"','').strip() + '\"'
         #conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"', "") + '\"'
     except:
         conteudo = 'indef'
@@ -374,7 +374,7 @@ def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
     except:
         titulo = 'indef'
     try:
-        conteudo = '\"' + review_selenium.find_element_by_xpath(".//p[@class='partial_entry']").text.replace('\"','') + '\"'
+        conteudo = '\"' + review_selenium.find_element_by_xpath(".//p[@class='partial_entry']").text.replace('\"','').strip() + '\"'
 
         #conteudo = '\"' + review.find('p', class_='partial_entry').text.replace('\"', '') + '\"'
     except:
@@ -401,14 +401,14 @@ def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
     except:
         usuario = 'indef'
     try:
-        data_avaliacao = review.find('a', class_='ui_header_link _1r_My98y').parent.text.split()
-        data_avaliacao = ' '.join(data_avaliacao[data_avaliacao.index('avaliação')+1:])
+        data_avaliacao = review.find('a', class_='ui_header_link _1r_My98y').next_sibling.split()[3:]
+        data_avaliacao = ' '.join(data_avaliacao)
         data_avaliacao = parse_date(data_avaliacao)
     except:
         data_avaliacao = 'indef'
     try:
-        data_visita = ' '.join(review.find('span', class_='_34Xs-BQm').text.split()[3:])
-        data_visita = parse_date(data_visita)
+        data_estadia = ' '.join(review.find('span', class_='_355y0nZn').next_sibling.split())
+        data_estadia = parse_date(data_estadia)
     except:
         data_visita = 'indef'
     try:
@@ -423,7 +423,7 @@ def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
     try:
         read_more = review_selenium.find_element_by_xpath(".//span[@class='_3maEfNCR']")
         driver.execute_script("arguments[0].click();", read_more)
-        conteudo = '\"' + review_selenium.find_element_by_xpath(".//q[@class='IRsGHoPm']").text.replace('\"','') + '\"'
+        conteudo = '\"' + review_selenium.find_element_by_xpath(".//q[@class='IRsGHoPm']").text.replace('\"','').strip() + '\"'
         
         #conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"','') + '\"'
     except:
@@ -489,40 +489,58 @@ def coleta_review_por_url(get_review_data, get_review_cards, review_url):
         driver.quit()
     return data
 
-def coleta_reviews(nome, id_, tipo_review, qtd_avaliacoes, entry_link, get_review_data, get_review_cards):
+def coleta_reviews(nome, id_, tipo_review, entry_link, get_review_data, get_review_cards):
     review_urls = get_reviews_page_urls(entry_link, tipo_review)
-    if qtd_avaliacoes > 1000:
-        review_urls = filter_old_reviews(review_urls, tipo_review)
+    collected_reviews = []
+    for review_urls_by_language in review_urls:
+        # Muitas paginas -> vale a pena filtrar
+        if len(review_urls_by_language) > 100:
+            review_urls_by_language = filter_old_reviews(review_urls_by_language, tipo_review)
 
-    get_review_data = partial(get_review_data, id_, nome, tipo_review)
-    data_extractor = partial(coleta_review_por_url, get_review_data, get_review_cards)
-    
-    with ThreadPoolExecutor(4) as pool:
-        d = pool.map(data_extractor, review_urls)
-    data = reduce(lambda acc, x: acc + x, d)
+        partial_extractor = partial(get_review_data, id_, nome, tipo_review)
+        data_extractor = partial(coleta_review_por_url, partial_extractor, get_review_cards)
+        
+        with ThreadPoolExecutor(4) as pool:
+            d = pool.map(data_extractor, review_urls_by_language)
+        data = reduce(lambda acc, x: acc + x, d)
+        collected_reviews += data
 
-    return data
+    return collected_reviews
 
 def atualiza_reviews(cidade, nome, id_, tipo_review, entry_link, get_review_data, get_review_cards):
     review_urls = get_reviews_page_urls(entry_link, tipo_review)
-    get_review_data = partial(get_review_data, id_, nome, tipo_review)
     last_scrape_date = get_last_scrape_date(cidade, tipo_review)
-    reviews_to_collect = []
+    partial_extractor = partial(get_review_data, id_, nome, tipo_review)
 
-    for url in review_urls:
-        review_cards, _ = get_review_cards(url)
-        for card in review_cards:
-            review = get_review_data(card)
-            if review['data_avaliacao'] != 'indef':
-                review_date = int(review['data_avaliacao'].replace('-',''))
-                # Para de coletar se a data do review é mais antiga que a
-                # data da ultima coleta
-                if review_date > last_scrape_date:
-                    reviews_to_collect.append(review)
-                else:
-                    return reviews_to_collect
+    collected_reviews = []
+    for review_url_by_language in review_urls:
+        done = False
+
+        for url in review_url_by_language:
+            review_cards, driver = get_review_cards(url)
+            if driver is not None:
+                data_extractor = partial(partial_extractor, driver)
+
+            for card in review_cards:
+                review = data_extractor(card)
+                if review['data_avaliacao'] != 'indef':
+                    review_date = int(review['data_avaliacao'].replace('-',''))
+                    # Para de coletar se a data do review é mais antiga que a
+                    # data da ultima coleta
+                    if review_date > last_scrape_date:
+                        collected_reviews.append(review)
+                    else:
+                        # Absolutamente terrivel esse jeito de sair dos loops
+                        done = True
+                        break
+
+            if driver is not None:
+                time.sleep(3)
+                driver.quit()
+            if done:
+                break
     
-    return reviews_to_collect
+    return collected_reviews
 
 def get_last_scrape_date(cidade, tipo):
     if tipo == 'hotel-review':
@@ -621,7 +639,7 @@ def get_reviews_page_urls(entry_link, page_type):
     for LANGUAGE in LANGUAGES_TO_COLLECT:
         full_url = 'https://www.tripadvisor.com' + LANGUAGE + entry_link
         urls_by_language = get_page_urls(full_url, page_type)
-        urls += urls_by_language
+        urls.append(urls_by_language)
     return urls
 
 #Escreve os dados coletados em um arquivo .csv
@@ -799,5 +817,6 @@ if __name__ == "__main__":
     coleta_cidades(cidades, mode)
     '''
 
-    print(get_reviews_page_urls('/Hotel_Review-g303389-d2510559-Reviews-Pousada_Sao_Francisco_de_Paula-Ouro_Preto_State_of_Minas_Gerais.html', 'hotel-review'))
+    data = atualiza_reviews('Diamantina','','','hotel-review', '/Hotel_Review-g303380-d3619350-Reviews-Pousada_Pouso_da_Chica-Diamantina_State_of_Minas_Gerais.html', get_hotel_review_data, get_hotel_review_cards)
+    print(len(data))
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
