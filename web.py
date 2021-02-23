@@ -16,7 +16,7 @@ import datetime
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'}
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
-LANGUAGES_TO_COLLECT = [''] # '' significa para coletar em ingles
+LANGUAGES_TO_COLLECT = ['.br'] # '' significa para coletar em ingles
 REQUEST_DELAY = 10
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
@@ -410,8 +410,8 @@ def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
     except:
         data_avaliacao = 'indef'
     try:
-        data_estadia = ' '.join(review.find('span', class_='_355y0nZn').next_sibling.split())
-        data_estadia = parse_date(data_estadia)
+        data_visita = ' '.join(review.find('span', class_='_355y0nZn').next_sibling.split())
+        data_visita = parse_date(data_visita)
     except:
         data_visita = 'indef'
     try:
@@ -837,5 +837,6 @@ if __name__ == "__main__":
     coleta_cidades(cidades, mode)
     '''
 
-    print(get_max_num_pages('https://www.tripadvisor.com.br/Attractions-g303389-Activities-Ouro_Preto_State_of_Minas_Gerais.html', 'atracao'))
+    print(coleta_reviews('', '', 'restaurante-review', '/Restaurant_Review-g303389-d5689452-Reviews-Beijinho_Doce-Ouro_Preto_State_of_Minas_Gerais.html',
+    get_restaurante_review_data, get_restaurante_review_cards))
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
