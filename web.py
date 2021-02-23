@@ -16,7 +16,7 @@ import datetime
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'}
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
-LANGUAGES_TO_COLLECT = ['.br', ''] # '' significa para coletar em ingles
+LANGUAGES_TO_COLLECT = [''] # '' significa para coletar em ingles
 REQUEST_DELAY = 10
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
@@ -340,7 +340,7 @@ def get_hotel_review_data(id_, nome, tipo, driver, review_selenium):
 def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
     review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
-        usuario = review.find('div', class_='info_text pointer_cursor').text
+        usuario = review.find('div', class_='info_text pointer_cursor').div.text
         # Só precisa pegar origem se for para escrever os restaurantes coletados
         if not ONLY_REVIEWS:
             usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
@@ -350,7 +350,10 @@ def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
         try:
             origem = '\"' + usuario_soup.find('span', class_='_2VknwlEe _3J15flPT default').text + '\"'
         except:
-            origem = 'indef'
+            try:
+                origem = '\"' + review.find('div', class_='userLoc').text + '\"'
+            except:
+                origem = 'indef'
     except:
         usuario = 'indef'
         origem = 'indef'
@@ -462,9 +465,12 @@ def get_restaurante_review_cards(entry_url):
     review_cards = driver.find_elements_by_xpath("//div[@class='review-container']")
     
     # Ao clicar em um "ler mais", todos os outros comentarios da pagina se expandem
-    read_more = driver.find_element_by_xpath(".//span[@class='taLnk ulBlueLinks']")
-    driver.execute_script("arguments[0].click();", read_more)
-    time.sleep(2)
+    try:
+        read_more = driver.find_element_by_xpath(".//span[@class='taLnk ulBlueLinks']")
+        driver.execute_script("arguments[0].click();", read_more)
+        time.sleep(2)
+    except:
+        pass
     return review_cards, driver
 
 def get_atracao_review_cards(entry_url):
@@ -590,13 +596,20 @@ def get_restaurante_links(url):
 
 #Retorna os links das atracoes presentes numa listagem
 def get_atracao_links(url):
-    soup = get_soup(url)
-    atracoes_items = soup.findAll('a', class_='_1QKQOve4')
+    driver = get_driver_selenium(url)
+    #Espera carregar
+    driver.implicitly_wait(60)
+    #WebDriverWait(driver, 60).until(
+    #EC.presence_of_element_located((By.CLASS_NAME, "_1oY56Xsv")))
+
+    atracoes_items = driver.find_elements_by_xpath("//div[@class='_1oY56Xsv']")
     atracoes_links = []
     for atracao in atracoes_items:
-        atracao_link = atracao['href']
+        atracao_link = '/' + atracao.find_element_by_tag_name('a').get_attribute('href').split('/')[-1]
         atracoes_links.append(atracao_link)
     
+    time.sleep(3)
+    driver.quit()
     return atracoes_links
 
 #Gera, a partir de uma URl inicial, as URLS correspondentes ao avançar uma página
@@ -659,6 +672,13 @@ def get_max_num_pages(url, page_type):
     soup = get_soup(url)
     if 'restaurante-review' in page_type:
         num_pages = soup.find('div', id='REVIEWS').findAll('a', class_="pageNum")[-1].string
+    elif 'atracao' == page_type:
+        driver = get_driver_selenium(url)
+        driver.implicitly_wait(60)
+        last_page_button = driver.find_elements_by_xpath("//a[@class='_3ghuVozE _2xHyLFC5 _27ZzJr-O']")[-1]
+        num_pages = last_page_button.get_attribute('aria-label')
+        time.sleep(3)
+        driver.quit()
     else:
         num_pages = soup.findAll('a', class_="pageNum")[-1].string
     return int(num_pages)
@@ -817,6 +837,5 @@ if __name__ == "__main__":
     coleta_cidades(cidades, mode)
     '''
 
-    data = atualiza_reviews('Diamantina','','','hotel-review', '/Hotel_Review-g303380-d3619350-Reviews-Pousada_Pouso_da_Chica-Diamantina_State_of_Minas_Gerais.html', get_hotel_review_data, get_hotel_review_cards)
-    print(len(data))
+    print(get_max_num_pages('https://www.tripadvisor.com.br/Attractions-g303389-Activities-Ouro_Preto_State_of_Minas_Gerais.html', 'atracao'))
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
