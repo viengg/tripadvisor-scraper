@@ -17,16 +17,28 @@ import datetime
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'}
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
+
 LANGUAGES_TO_COLLECT = ['.br', ''] # '' significa para coletar em ingles
-REQUEST_DELAY = 10
+REQUEST_DELAY = 30
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
 UPDATE_REVIEWS = False
 TOO_MUCH_REVIEW_PAGES = 50
+NUM_THREADS_FOR_REVIEW = 8
+NUM_THREADS_FOR_PLACE = 1
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
-    r = requests.get(url, headers=headers)
+    
+    max_num_tries = 3
+    while max_num_tries > 0:
+        try:
+            r = requests.get(url, headers=headers)
+            break
+        except:
+            time.sleep(5*60)
+            max_num_tries -= 1
+
     soup = BeautifulSoup(r.text, 'lxml')
     return soup
 
@@ -42,9 +54,18 @@ def get_driver_selenium(url):
     chrome_options.add_argument('disable-infobars')
     chrome_options.add_argument('--disable-extensions')
     chrome_options.add_argument('--disable-gpu')
-    wd = webdriver.Chrome(options=chrome_options)
-    wd.get(url)
-    time.sleep(REQUEST_DELAY)
+
+    max_num_tries = 3
+    while max_num_tries > 0:
+        try:
+            wd = webdriver.Chrome(options=chrome_options)
+            wd.get(url)
+            time.sleep(REQUEST_DELAY)
+            break
+        except:
+            time.sleep(5*60)
+            max_num_tries -= 1
+    
     return wd
 
 #A partir de um link de hotel, entra na pagina do hotel em questao
@@ -508,7 +529,7 @@ def coleta_reviews(nome, id_, tipo_review, entry_link, get_review_data, get_revi
         partial_extractor = partial(get_review_data, id_, nome, tipo_review)
         data_extractor = partial(coleta_review_por_url, partial_extractor, get_review_cards)
         
-        with ThreadPoolExecutor(10) as pool:
+        with ThreadPoolExecutor(NUM_THREADS_FOR_REVIEW) as pool:
             d = pool.map(data_extractor, review_urls_by_language)
         data = reduce(lambda acc, x: acc + x, d)
         collected_reviews += data
@@ -692,7 +713,7 @@ def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type, come
     data = []
     for url in page_urls:
         links = get_links(url)
-        with ThreadPoolExecutor(1) as pool:
+        with ThreadPoolExecutor(NUM_THREADS_FOR_PLACE) as pool:
             d = pool.map(data_extractor, links)
         data += list(d)
 
