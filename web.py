@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from bs4 import BeautifulSoup
 import requests
 import json
@@ -16,7 +18,7 @@ import datetime
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'}
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
-LANGUAGES_TO_COLLECT = ['.br'] # '' significa para coletar em ingles
+LANGUAGES_TO_COLLECT = ['.br', ''] # '' significa para coletar em ingles
 REQUEST_DELAY = 10
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
@@ -45,7 +47,7 @@ def get_driver_selenium(url):
     time.sleep(REQUEST_DELAY)
     return wd
 
-#A partir de um link de hotel, entra na pagina do hotel em questão
+#A partir de um link de hotel, entra na pagina do hotel em questao
 #e extrai seus dados
 def get_hotel_data(city_name, comentarios_flag, entry_link):
     entry_url = trip_url + entry_link
@@ -106,7 +108,7 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
 
     hotel_id = entry_link.split("-")[2][1:]
     try:
-        # Só precisa acessar json se for pra escrever os hoteis
+        # So precisa acessar json se for pra escrever os hoteis
         if not ONLY_REVIEWS:
             api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/hotel/{}?rn=1&rc=Hotel_Review&stayDates=2021_2_11_2021_2_12&guestInfo=1_2&placementName=Hotel_Review_MapDetail_Anchor&currency=BRL'.format(hotel_id)
             api_json = requests.get(api_url).json()
@@ -172,7 +174,7 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
         nota = 'indef'
     try:
         restaurant_id = entry_link.split('-')[2][1:]
-        # Só precisa acessar json se for pra escrever o restaurante
+        # So precisa acessar json se for pra escrever o restaurante
         if not ONLY_REVIEWS:
             api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/restaurant/{}'.format(restaurant_id)
             api_json = requests.get(api_url).json()
@@ -246,7 +248,7 @@ def get_atracao_data(city_name, comentarios_flag, entry_link):
         nota = 'indef'
     try:
         atracao_id = entry_link.split('-')[2][1:]
-        # Só precisa acessar json se for pra escrever a atracao
+        # So precisa acessar json se for pra escrever a atracao
         if not ONLY_REVIEWS:
             api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/attraction/{}'.format(atracao_id)
             api_json = requests.get(api_url).json()
@@ -341,7 +343,7 @@ def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
     review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
         usuario = review.find('div', class_='info_text pointer_cursor').div.text
-        # Só precisa pegar origem se for para escrever os restaurantes coletados
+        # So precisa pegar origem se for para escrever os restaurantes coletados
         if not ONLY_REVIEWS:
             usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
             usuario_soup = get_soup(usuario_url)
@@ -506,7 +508,7 @@ def coleta_reviews(nome, id_, tipo_review, entry_link, get_review_data, get_revi
         partial_extractor = partial(get_review_data, id_, nome, tipo_review)
         data_extractor = partial(coleta_review_por_url, partial_extractor, get_review_cards)
         
-        with ThreadPoolExecutor(4) as pool:
+        with ThreadPoolExecutor(10) as pool:
             d = pool.map(data_extractor, review_urls_by_language)
         data = reduce(lambda acc, x: acc + x, d)
         collected_reviews += data
@@ -531,7 +533,7 @@ def atualiza_reviews(cidade, nome, id_, tipo_review, entry_link, get_review_data
                 review = data_extractor(card)
                 if review['data_avaliacao'] != 'indef':
                     review_date = int(review['data_avaliacao'].replace('-',''))
-                    # Para de coletar se a data do review é mais antiga que a
+                    # Para de coletar se a data do review e mais antiga que a
                     # data da ultima coleta
                     if review_date > last_scrape_date:
                         collected_reviews.append(review)
@@ -612,7 +614,7 @@ def get_atracao_links(url):
     driver.quit()
     return atracoes_links
 
-#Gera, a partir de uma URl inicial, as URLS correspondentes ao avançar uma página
+#Gera, a partir de uma URl inicial, as URLS correspondentes ao avançar uma pagina
 def get_page_urls(initial_url, page_type):
     urls=[initial_url]
     try:
@@ -690,7 +692,7 @@ def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type, come
     data = []
     for url in page_urls:
         links = get_links(url)
-        with ThreadPoolExecutor(4) as pool:
+        with ThreadPoolExecutor(1) as pool:
             d = pool.map(data_extractor, links)
         data += list(d)
 
@@ -700,7 +702,7 @@ def coleta_hoteis(cidade, url, comentarios_flag):
     hoteis = coleta_dados(cidade, url, get_hotel_data, get_hotel_links, 'hotel', comentarios_flag)
     if not ONLY_REVIEWS:
         write_to_file(os.path.join(cidade,'hoteis.csv'), hoteis)
-    print(f'\n{len(hoteis)} hoteis coletados\n')
+    print(f"\n{len(hoteis)} hoteis coletados\n")
 
 def coleta_restaurantes(cidade, url, comentarios_flag):
     restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante', comentarios_flag)
@@ -821,11 +823,11 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-        'Diamantina': 'https://www.tripadvisor.com.br/Tourism-g303380-Diamantina_State_of_Minas_Gerais-Vacations.html'
+            'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
-    ''' 
+
     tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
     comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
     mode = tipo_coleta + comentarios_flag
@@ -835,8 +837,5 @@ if __name__ == "__main__":
         clear_files(nome_cidades, mode)
     
     coleta_cidades(cidades, mode)
-    '''
 
-    print(coleta_reviews('', '', 'restaurante-review', '/Restaurant_Review-g303389-d5689452-Reviews-Beijinho_Doce-Ouro_Preto_State_of_Minas_Gerais.html',
-    get_restaurante_review_data, get_restaurante_review_cards))
     print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
