@@ -2,7 +2,6 @@
 
 from bs4 import BeautifulSoup
 import requests
-import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial, reduce
@@ -23,6 +22,7 @@ REQUEST_DELAY = 10
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
 UPDATE_REVIEWS = False
+TOO_MUCH_REVIEW_PAGES = 50
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
@@ -64,8 +64,8 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
     except:
         nome = 'indef'
     try:
-        preco =  WebDriverWait(driver, 2*REQUEST_DELAY).until(
-        EC.presence_of_element_located((By.CLASS_NAME, "bookableOffer")))
+        preco = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "bookableOffer")))
         preco = preco.get_attribute('data-pernight')
         #preco = soup.find(class_='bookableOffer')['data-pernight']
     except:
@@ -464,13 +464,13 @@ def get_restaurante_review_cards(entry_url):
     #soup = get_soup(entry_url)
     #review_cards = soup.findAll('div', class_='review-container')
     driver = get_driver_selenium(entry_url)
+    driver.implicitly_wait(5)
     review_cards = driver.find_elements_by_xpath("//div[@class='review-container']")
     
     # Ao clicar em um "ler mais", todos os outros comentarios da pagina se expandem
     try:
         read_more = driver.find_element_by_xpath(".//span[@class='taLnk ulBlueLinks']")
         driver.execute_script("arguments[0].click();", read_more)
-        time.sleep(2)
     except:
         pass
     return review_cards, driver
@@ -502,7 +502,7 @@ def coleta_reviews(nome, id_, tipo_review, entry_link, get_review_data, get_revi
     collected_reviews = []
     for review_urls_by_language in review_urls:
         # Muitas paginas -> vale a pena filtrar
-        if len(review_urls_by_language) > 100:
+        if len(review_urls_by_language) >= TOO_MUCH_REVIEW_PAGES:
             review_urls_by_language = filter_old_reviews(review_urls_by_language, tipo_review)
 
         partial_extractor = partial(get_review_data, id_, nome, tipo_review)
@@ -761,6 +761,29 @@ def clear_files(nome_cidades, mode):
             if 's' in mode and not UPDATE_REVIEWS:
                 open(os.path.join(cidade,'avaliacoes-atracoes.csv'), 'w').close()
 
+def extrai_datas(review_cards, tipo):
+    datas = []
+
+    if tipo == 'atracao-review' or tipo == 'hotel-review':
+        for card in review_cards:
+            try:
+                data_avaliacao = card.find('a', class_='ui_header_link _1r_My98y').next_sibling.split()[3:]
+                data_avaliacao = ' '.join(data_avaliacao)
+                data_avaliacao = parse_date(data_avaliacao)
+            except:
+                data_avaliacao = 'indef'
+            datas.append(data_avaliacao)
+
+    elif tipo == 'restaurante-review':
+        for card in review_cards:
+            try:
+                data_avaliacao = card.find('span', class_='ratingDate')['title']
+                data_avaliacao = parse_date(data_avaliacao)
+            except:
+                data_avaliacao = 'indef'
+            datas.append(data_avaliacao)
+    return datas
+
 # Retorno a indice em review_urls que contem o ultimo comentario de year
 def binary_search(review_urls, tipo, low, high, index): 
   
@@ -768,24 +791,28 @@ def binary_search(review_urls, tipo, low, high, index):
         
         # Carrega os reviews da pagina no meio do vetor
         mid = (high + low) // 2
+        mid_url = review_urls[mid]
+        soup = get_soup(mid_url)
         
+        # Extrai as datas dos reviews da pagina
         if tipo == 'atracao-review':
-            extractor = partial(get_atracao_review_data,'','','')
-            reviews = coleta_review_por_url(extractor, get_atracao_review_cards, review_urls[mid])
+            review_cards = soup.findAll('div', class_='Dq9MAugU T870kzTX LnVzGwUB')
+
         elif tipo == 'hotel-review':
-            extractor = partial(get_hotel_review_data,'','','')
-            reviews = coleta_review_por_url(extractor, get_hotel_review_cards, review_urls[mid])
-        else:
-            extractor = partial(get_restaurante_review_data,'','','')
-            reviews = coleta_review_por_url(extractor, get_restaurante_review_cards, review_urls[mid])
+            review_cards = soup.findAll('div', class_='_2wrUUKlw _3hFEdNs8')
 
-        for review in reviews:
-            if review['data_avaliacao'] != 'indef':
-                review_year = int(review['data_avaliacao'].split('-')[0])
-                break
+        elif tipo == 'restaurante-review':
+            review_cards = soup.findAll('div', class_='review-container')
         
+        page_review_dates = extrai_datas(review_cards, tipo)
 
-        # Se a ano do review da pagina eh maior que o ano limite, tenho
+        # Pega o primeiro ano valido
+        for date in page_review_dates:
+            if date != 'indef':
+                review_year = int(date.split('-')[0])
+                break
+
+        # Se a ano do primeiro review da pagina eh maior que o ano limite, tenho
         # que percorrer pelo menos ate "mid" e continua indo para a direita
         if review_year >= COLLECT_UNTIL: 
             return binary_search(review_urls, tipo, mid + 1, high, mid) 
