@@ -12,6 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import datetime
+import pandas as pd
 
 #session = requests.Session()
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'}
@@ -70,7 +71,7 @@ def get_driver_selenium(url):
 
 #A partir de um link de hotel, entra na pagina do hotel em questao
 #e extrai seus dados
-def get_hotel_data(city_name, comentarios_flag, entry_link):
+def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
     entry_url = trip_url + entry_link
     driver = get_driver_selenium(entry_url)
     soup = BeautifulSoup(driver.page_source, 'lxml')
@@ -79,6 +80,11 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
     cidade = soup.find('a', id='global-nav-tourism').string
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
         return {}
+    
+    hotel_id = entry_link.split("-")[2][1:]
+    if hoteis_coletados is not None and not UPDATE_REVIEWS:
+        if int(hotel_id) in hoteis_coletados['hotel_id'].values:
+            return {}
 
     try:
         nome = soup.find(id="HEADING").string.strip()
@@ -127,7 +133,6 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
         
     tipo = get_type_by_name(nome, ['Hotel', 'Pousada', 'Hostel', 'Chale'])
 
-    hotel_id = entry_link.split("-")[2][1:]
     try:
         # So precisa acessar json se for pra escrever os hoteis
         if not ONLY_REVIEWS:
@@ -166,16 +171,23 @@ def get_hotel_data(city_name, comentarios_flag, entry_link):
         'fonte': entry_url,
     }
     print(nome + ' preco:' + preco)
+    if not ONLY_REVIEWS:
+        write_to_file(os.path.join(city_name,'hoteis.csv'), [data])
     return data 
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
-def get_restaurante_data(city_name, comentarios_flag, entry_link):
+def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, entry_link):
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
 
     cidade = soup.find('a', id='global-nav-tourism').string
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
         return {}
+
+    restaurant_id = entry_link.split('-')[2][1:]
+    if restaurantes_coletados is not None and not UPDATE_REVIEWS:
+        if int(restaurant_id) in restaurantes_coletados['restaurante_id'].values:
+            return {}
 
     try:
         nome = soup.find('h1', {'data-test-target':'top-info-header'}).string.replace(',', ' |')
@@ -194,7 +206,6 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
     except:
         nota = 'indef'
     try:
-        restaurant_id = entry_link.split('-')[2][1:]
         # So precisa acessar json se for pra escrever o restaurante
         if not ONLY_REVIEWS:
             api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/restaurant/{}'.format(restaurant_id)
@@ -239,10 +250,12 @@ def get_restaurante_data(city_name, comentarios_flag, entry_link):
         'fonte': entry_url,
     }
     print(nome + ' coletado')
+    if not ONLY_REVIEWS:
+        write_to_file(os.path.join(city_name,'restaurantes.csv'), [data])
     return data
 
 #A partir de um link de atracao, entra na pagina e extrai seus dados
-def get_atracao_data(city_name, comentarios_flag, entry_link):
+def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link):
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
     
@@ -250,6 +263,10 @@ def get_atracao_data(city_name, comentarios_flag, entry_link):
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
         return {}
 
+    atracao_id = entry_link.split('-')[2][1:]
+    if atracoes_coletadas is not None and not UPDATE_REVIEWS:
+        if int(atracao_id) in atracoes_coletadas['atracao_id'].values:
+            return {}
     try:
         nome = soup.find('h1', id='HEADING').string.strip().replace('\"','')
     except:
@@ -268,7 +285,6 @@ def get_atracao_data(city_name, comentarios_flag, entry_link):
     except:
         nota = 'indef'
     try:
-        atracao_id = entry_link.split('-')[2][1:]
         # So precisa acessar json se for pra escrever a atracao
         if not ONLY_REVIEWS:
             api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/attraction/{}'.format(atracao_id)
@@ -300,6 +316,8 @@ def get_atracao_data(city_name, comentarios_flag, entry_link):
         'fonte': entry_url,
     }
     print(nome + ' coletado')
+    if not ONLY_REVIEWS:
+        write_to_file(os.path.join(city_name,'atracoes.csv'), [data])
     return data
 
 def get_hotel_review_data(id_, nome, tipo, driver, review_selenium):
@@ -640,7 +658,7 @@ def get_page_urls(initial_url, page_type):
     urls=[initial_url]
     try:
         num_pages = get_max_num_pages(initial_url, page_type)
-    except IndexError:
+    except:
         return urls
 
     if page_type in ['hotel', 'restaurante', 'atracao']:
@@ -707,9 +725,9 @@ def get_max_num_pages(url, page_type):
     return int(num_pages)
 
 #Coleta dados de hoteis/restaurantes/atracoes (lista de listas)
-def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type, comentarios_flag):
+def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type, comentarios_flag, instancias_coletadas):
     page_urls = get_page_urls(initial_url, page_type)
-    data_extractor = partial(data_extractor, cidade, comentarios_flag)
+    data_extractor = partial(data_extractor, cidade, comentarios_flag, instancias_coletadas)
     data = []
     for url in page_urls:
         links = get_links(url)
@@ -720,21 +738,36 @@ def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type, come
     return data
 
 def coleta_hoteis(cidade, url, comentarios_flag):
-    hoteis = coleta_dados(cidade, url, get_hotel_data, get_hotel_links, 'hotel', comentarios_flag)
-    if not ONLY_REVIEWS:
-        write_to_file(os.path.join(cidade,'hoteis.csv'), hoteis)
+    filename = os.path.join(cidade,'hoteis.csv')
+    try:
+        hoteis_coletados = pd.read_csv(filename)
+    except:
+        hoteis_coletados = None
+    hoteis = coleta_dados(cidade, url, get_hotel_data, get_hotel_links, 'hotel', comentarios_flag, hoteis_coletados)
+    #if not ONLY_REVIEWS:
+        #write_to_file(os.path.join(cidade,'hoteis.csv'), hoteis)
     print(f"\n{len(hoteis)} hoteis coletados\n")
 
 def coleta_restaurantes(cidade, url, comentarios_flag):
-    restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante', comentarios_flag)
-    if not ONLY_REVIEWS:
-        write_to_file(os.path.join(cidade,'restaurantes.csv'), restaurantes)
+    filename = os.path.join(cidade,'restaurantes.csv')
+    try:
+        restaurantes_coletados = pd.read_csv(filename)
+    except:
+        restaurantes_coletados = None
+    restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante', comentarios_flag, restaurantes_coletados)
+    #if not ONLY_REVIEWS:
+        #write_to_file(os.path.join(cidade,'restaurantes.csv'), restaurantes)
     print(f'\n{len(restaurantes)} restaurantes coletados\n')
 
 def coleta_atracoes(cidade, url, comentarios_flag):
-    atracoes = coleta_dados(cidade, url, get_atracao_data, get_atracao_links, 'atracao', comentarios_flag)
-    if not ONLY_REVIEWS:
-        write_to_file(os.path.join(cidade, 'atracoes.csv'), atracoes)
+    filename = os.path.join(cidade,'atracoes.csv')
+    try:
+        atracoes_coletadas = pd.read_csv(filename)
+    except:
+        atracoes_coletadas = None
+    atracoes = coleta_dados(cidade, url, get_atracao_data, get_atracao_links, 'atracao', comentarios_flag, atracoes_coletadas)
+    #if not ONLY_REVIEWS:
+        #write_to_file(os.path.join(cidade, 'atracoes.csv'), atracoes)
     print(f'\n{len(atracoes)} atracoes coletadas\n')
 
 def get_links_from_city(city_url):
