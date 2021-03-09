@@ -25,8 +25,8 @@ COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
 UPDATE_REVIEWS = False
 TOO_MUCH_REVIEW_PAGES = 50
-NUM_THREADS_FOR_REVIEW = 8
-NUM_THREADS_FOR_PLACE = 1
+NUM_THREADS_FOR_REVIEW = 1
+NUM_THREADS_FOR_PLACE = 8
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
@@ -909,7 +909,8 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-            'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
+            'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html',
+            'Mariana': 'https://www.tripadvisor.com.br/Tourism-g303386-Mariana_State_of_Minas_Gerais-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
