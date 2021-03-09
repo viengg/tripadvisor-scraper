@@ -187,6 +187,7 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
     restaurant_id = entry_link.split('-')[2][1:]
     if restaurantes_coletados is not None and not UPDATE_REVIEWS:
         if int(restaurant_id) in restaurantes_coletados['restaurante_id'].values:
+            print(restaurant_id + ' já foi coletado')
             return {}
 
     try:
@@ -259,7 +260,10 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
     
-    cidade = soup.find('a', id='global-nav-tourism').string
+    try:
+        cidade = soup.find('a', id='global-nav-tourism').string
+    except:
+        cidade = 'indef'
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
         return {}
 
@@ -754,6 +758,7 @@ def coleta_restaurantes(cidade, url, comentarios_flag):
         restaurantes_coletados = pd.read_csv(filename)
     except:
         restaurantes_coletados = None
+    
     restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante', comentarios_flag, restaurantes_coletados)
     #if not ONLY_REVIEWS:
         #write_to_file(os.path.join(cidade,'restaurantes.csv'), restaurantes)
