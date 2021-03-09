@@ -136,7 +136,7 @@ def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
     try:
         # So precisa acessar json se for pra escrever os hoteis
         if not ONLY_REVIEWS:
-            api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/hotel/{}?rn=1&rc=Hotel_Review&stayDates=2021_2_11_2021_2_12&guestInfo=1_2&placementName=Hotel_Review_MapDetail_Anchor&currency=BRL'.format(hotel_id)
+            api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/hotel/{}?rn=1&rc=Hotel_Review&guestInfo=1_2&placementName=Hotel_Review_MapDetail_Anchor&currency=BRL'.format(hotel_id)
             api_json = requests.get(api_url).json()
         else:
             api_json = {}
