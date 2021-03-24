@@ -25,8 +25,8 @@ COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
 UPDATE_REVIEWS = False
 TOO_MUCH_REVIEW_PAGES = 50
-NUM_THREADS_FOR_REVIEW = 1
-NUM_THREADS_FOR_PLACE = 8
+NUM_THREADS_FOR_REVIEW = 8
+NUM_THREADS_FOR_PLACE = 1
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
@@ -777,9 +777,10 @@ def coleta_atracoes(cidade, url, comentarios_flag):
 
 def get_links_from_city(city_url):
     soup = get_soup(city_url)
-    hotel_url = 'https://www.tripadvisor.com.br'+ soup.find('a', {'class': '_1yB-kafB', 'title':'Hotéis'})['href']
-    restaurante_url = 'https://www.tripadvisor.com.br' + soup.find('a', {'class': '_1yB-kafB', 'title':'Restaurantes'})['href']
-    atracao_url = 'https://www.tripadvisor.com.br' + soup.find('a', {'class': '_1yB-kafB', 'title':'O que fazer'})['href']
+    links = soup.findAll('a', {'class': '_1ulyogkG'})
+    hotel_url = 'https://www.tripadvisor.com.br'+ links[0]['href']
+    restaurante_url = 'https://www.tripadvisor.com.br' + links[2]['href']
+    atracao_url = 'https://www.tripadvisor.com.br' + links[3]['href']
     atracao_url = atracao_url.split('-')
     atracao_url.insert(3, 'a_allAttractions.true')
     atracao_url = '-'.join(atracao_url)
@@ -909,8 +910,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-            'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html',
-            'Mariana': 'https://www.tripadvisor.com.br/Tourism-g303386-Mariana_State_of_Minas_Gerais-Vacations.html'
+            'Brumadinho': 'https://www.tripadvisor.com.br/Tourism-g1747395-Brumadinho_State_of_Minas_Gerais-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
