@@ -647,7 +647,7 @@ def get_atracao_links(url):
     #WebDriverWait(driver, 60).until(
     #EC.presence_of_element_located((By.CLASS_NAME, "_1oY56Xsv")))
 
-    atracoes_items = driver.find_elements_by_xpath("//div[@class='_1oY56Xsv']")
+    atracoes_items = driver.find_elements_by_xpath("//div[@class='_3JZh_6Iu']")
     atracoes_links = []
     for atracao in atracoes_items:
         atracao_link = '/' + atracao.find_element_by_tag_name('a').get_attribute('href').split('/')[-1]
