@@ -386,22 +386,21 @@ def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
     review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
         usuario = review.find('div', class_='info_text pointer_cursor').div.text
-        # So precisa pegar origem se for para escrever os restaurantes coletados
-        if not ONLY_REVIEWS:
+    except:
+        usuario = 'indef'
+    try:
+        origem = '\"' + review.find('div', class_='userLoc').text + '\"'
+    except:
+        if usuario != 'indef':
             usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
             usuario_soup = get_soup(usuario_url)
         else:
             usuario_soup = None
+            
         try:
             origem = '\"' + usuario_soup.find('span', class_='_2VknwlEe _3J15flPT default').text + '\"'
         except:
-            try:
-                origem = '\"' + review.find('div', class_='userLoc').text + '\"'
-            except:
-                origem = 'indef'
-    except:
-        usuario = 'indef'
-        origem = 'indef'
+            origem = 'indef'
     try:    
         data_avaliacao = review.find('span', class_='ratingDate')['title']
         data_avaliacao = parse_date(data_avaliacao)
