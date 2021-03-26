@@ -779,8 +779,8 @@ def get_links_from_city(city_url):
     soup = get_soup(city_url)
     links = soup.findAll('a', {'class': '_1ulyogkG'})
     hotel_url = 'https://www.tripadvisor.com.br'+ links[0]['href']
-    restaurante_url = 'https://www.tripadvisor.com.br' + links[2]['href']
-    atracao_url = 'https://www.tripadvisor.com.br' + links[3]['href']
+    restaurante_url = 'https://www.tripadvisor.com.br' + links[3]['href']
+    atracao_url = 'https://www.tripadvisor.com.br' + links[2]['href']
     atracao_url = atracao_url.split('-')
     atracao_url.insert(3, 'a_allAttractions.true')
     atracao_url = '-'.join(atracao_url)
