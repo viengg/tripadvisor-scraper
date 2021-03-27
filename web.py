@@ -180,7 +180,10 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
 
-    cidade = soup.find('a', id='global-nav-tourism').string
+    try:
+        cidade = soup.find('a', id='global-nav-tourism').string
+    except:
+        cidade = 'indef'
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
         return {}
 
@@ -909,7 +912,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-            'Brumadinho': 'https://www.tripadvisor.com.br/Tourism-g1747395-Brumadinho_State_of_Minas_Gerais-Vacations.html'
+            'Diamantina': 'https://www.tripadvisor.com.br/Tourism-g303380-Diamantina_State_of_Minas_Gerais-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
