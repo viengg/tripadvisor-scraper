@@ -2,7 +2,7 @@ import pandas as pd
 from langdetect import detect
 import os
 
-cidades = ['Diamantina']
+cidades = ['Tiradentes']
 for cidade in cidades:
     aval_hotel = pd.read_csv(os.path.join(cidade, 'avaliacoes-hoteis.csv')).drop_duplicates()
     aval_rest = pd.read_csv(os.path.join(cidade, 'avaliacoes-restaurantes.csv'))
