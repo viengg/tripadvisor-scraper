@@ -888,8 +888,11 @@ def binary_search(review_urls, tipo, low, high, index):
 
 # Filtra as paginas que contem reviews muito antigos
 def filter_old_reviews(review_urls, tipo):
-    index = binary_search(review_urls, tipo, 0, len(review_urls)-1, -1)
-    return review_urls[:index+1]
+    try:
+        index = binary_search(review_urls, tipo, 0, len(review_urls)-1, -1)
+        return review_urls[:index+1]
+    except:
+        return review_urls
 
 def make_dirs(nome_cidades):
     for nome in nome_cidades:
