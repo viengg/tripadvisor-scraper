@@ -621,7 +621,10 @@ def get_type_by_name(name, possible_types):
 
 #Retorna os links dos hoteis presentes numa listagem
 def get_hotel_links(url):
-    soup = get_soup(url)
+    driver = get_driver_selenium(url)
+    soup = BeautifulSoup(driver.page_source, 'lxml')
+    time.sleep(3)
+    driver.quit()
     listing_titles = soup.findAll(class_='listing_title')
     titles_links = []
     for entry in listing_titles:
