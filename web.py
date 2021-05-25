@@ -520,7 +520,7 @@ def get_restaurante_review_cards(entry_url):
 
 def get_atracao_review_cards(entry_url):
     driver = get_driver_selenium(entry_url)
-    review_cards = driver.find_elements_by_xpath("//div[@class='_1c8_1ITO']/*")
+    review_cards = driver.find_elements_by_xpath("//div[@class='_1c8_1ITO']/*")[:-1]
     #soup = get_soup(entry_url)
     #review_cards = soup.findAll('div', class_='Dq9MAugU T870kzTX LnVzGwUB')
     return review_cards, driver
@@ -727,6 +727,8 @@ def get_max_num_pages(url, page_type):
         num_pages = last_page_button.get_attribute('aria-label')
         time.sleep(3)
         driver.quit()
+    elif "atracao-review" == page_type:
+        num_pages = soup.findAll("div", class_="_1w5PB8Rk")[-1].string
     else:
         num_pages = soup.findAll('a', class_="pageNum")[-1].string
     return int(num_pages)
@@ -751,9 +753,9 @@ def coleta_hoteis(cidade, url, comentarios_flag):
     except:
         hoteis_coletados = None
     hoteis = coleta_dados(cidade, url, get_hotel_data, get_hotel_links, 'hotel', comentarios_flag, hoteis_coletados)
-    #if not ONLY_REVIEWS:
-        #write_to_file(os.path.join(cidade,'hoteis.csv'), hoteis)
-    print(f"\n{len(hoteis)} hoteis coletados\n")
+    if not ONLY_REVIEWS:
+        write_to_file(os.path.join(cidade,'hoteis.csv'), hoteis)
+    print("\n{} hoteis coletados\n".format(len(hoteis)))
 
 def coleta_restaurantes(cidade, url, comentarios_flag):
     filename = os.path.join(cidade,'restaurantes.csv')
@@ -763,9 +765,9 @@ def coleta_restaurantes(cidade, url, comentarios_flag):
         restaurantes_coletados = None
     
     restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante', comentarios_flag, restaurantes_coletados)
-    #if not ONLY_REVIEWS:
-        #write_to_file(os.path.join(cidade,'restaurantes.csv'), restaurantes)
-    print(f'\n{len(restaurantes)} restaurantes coletados\n')
+    if not ONLY_REVIEWS:
+        write_to_file(os.path.join(cidade,'restaurantes.csv'), restaurantes)
+    print('\n{} restaurantes coletados\n'.format(len(restaurantes)))
 
 def coleta_atracoes(cidade, url, comentarios_flag):
     filename = os.path.join(cidade,'atracoes.csv')
@@ -774,9 +776,9 @@ def coleta_atracoes(cidade, url, comentarios_flag):
     except:
         atracoes_coletadas = None
     atracoes = coleta_dados(cidade, url, get_atracao_data, get_atracao_links, 'atracao', comentarios_flag, atracoes_coletadas)
-    #if not ONLY_REVIEWS:
-        #write_to_file(os.path.join(cidade, 'atracoes.csv'), atracoes)
-    print(f'\n{len(atracoes)} atracoes coletadas\n')
+    if not ONLY_REVIEWS:
+        write_to_file(os.path.join(cidade, 'atracoes.csv'), atracoes)
+    print('\n{} atracoes coletadas\n'.format(len(atracoes)))
 
 def get_links_from_city(city_url):
     soup = get_soup(city_url)
@@ -827,7 +829,7 @@ def clear_files(nome_cidades, mode):
 def extrai_datas(review_cards, tipo):
     datas = []
 
-    if tipo == 'atracao-review' or tipo == 'hotel-review':
+    if tipo == 'hotel-review':
         for card in review_cards:
             try:
                 data_avaliacao = card.find('a', class_='ui_header_link _1r_My98y').next_sibling.split()[3:]
@@ -845,6 +847,16 @@ def extrai_datas(review_cards, tipo):
             except:
                 data_avaliacao = 'indef'
             datas.append(data_avaliacao)
+    
+    elif tipo == 'atracao-review':
+        for card in review_cards:
+            try:
+                data_avaliacao = ' '.join(card.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string.split()[2:])
+                data_avaliacao = parse_date(data_avaliacao)
+            except:
+                data_avaliacao = 'indef'
+            datas.append(data_avaliacao)
+
     return datas
 
 # Retorno a indice em review_urls que contem o ultimo comentario de year
@@ -859,7 +871,8 @@ def binary_search(review_urls, tipo, low, high, index):
         
         # Extrai as datas dos reviews da pagina
         if tipo == 'atracao-review':
-            review_cards = soup.findAll('div', class_='Dq9MAugU T870kzTX LnVzGwUB')
+            big_div = soup.find('div', class_='_1c8_1ITO')
+            review_cards = big_div.findAll("div", recursive=False)[:-1]
 
         elif tipo == 'hotel-review':
             review_cards = soup.findAll('div', class_='_2wrUUKlw _3hFEdNs8')
@@ -931,4 +944,4 @@ if __name__ == "__main__":
     
     coleta_cidades(cidades, mode)
 
-    print(f'tempo de execução: {(time.time() - start_time)/60} minutos')
+    print('tempo de execução: {} minutos'.format((time.time() - start_time)/60))
