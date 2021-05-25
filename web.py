@@ -13,6 +13,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import datetime
 import pandas as pd
+from webdriver_manager.chrome import ChromeDriverManager
+
 
 #session = requests.Session()
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'}
@@ -66,7 +68,6 @@ def get_driver_selenium(url):
         except:
             time.sleep(5*60)
             max_num_tries -= 1
-    
     return wd
 
 #A partir de um link de hotel, entra na pagina do hotel em questao
@@ -264,7 +265,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     soup = get_soup(entry_url)
     
     try:
-        cidade = soup.find('a', id='global-nav-tourism').string
+        cidade = soup.find('a', class_="_1T4t-FiN").string
     except:
         cidade = 'indef'
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
@@ -275,20 +276,19 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         if int(atracao_id) in atracoes_coletadas['atracao_id'].values:
             return {}
     try:
-        nome = soup.find('h1', id='HEADING').string.strip().replace('\"','')
+        nome = soup.find('h1', class_='DrjyGw-P _1SRa-qNz qf3QTY0F').string.strip().replace('\"','')
     except:
         nome = 'indef'
     try:
-        endereco = '\"' + soup.find('div', class_='LjCWTZdN').findAll('span')[1].string + '\"'
+        endereco = '\"' + soup.find("button", class_="LgQbZEQC _1v-QphLm _1fKqJFvt").find('span', class_='DrjyGw-P _1l3JzGX1').string + '\"'
     except:
         endereco = 'indef'
     try:
-        avaliacoes = soup.find('span', class_='_3WF_jKL7 _1uXQPaAr').string.split()[0].replace('.','')
+        avaliacoes = soup.find('a', href='#REVIEWS').string.split()[0].replace('.','')
     except:
         avaliacoes = '0'
     try:
-        nota = soup.find('span', class_='ui_bubble_rating')['class'][1][-2:]
-        nota = nota[0] + '.' + nota[1]
+        nota = soup.find('div', class_='DrjyGw-P _1SRa-qNz _3t0zrF_f _1QGef_ZJ').string
     except:
         nota = 'indef'
     try:
@@ -447,39 +447,38 @@ def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
 def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
     review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
-        usuario = review.find('a', class_='_3x5_awTA ui_social_avatar inline')['href'].split('/')[-1]
+        usuario = review.find('a', class_='_7c6GgQ6n _37QDe3gr WullykOU _3WoyIIcL')['href'].split('/')[-1]
     except:
         usuario = 'indef'
     try:
-        data_avaliacao = review.find('a', class_='ui_header_link _1r_My98y').next_sibling.split()[3:]
-        data_avaliacao = ' '.join(data_avaliacao)
+        data_avaliacao = ' '.join(review.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string.split()[2:])
         data_avaliacao = parse_date(data_avaliacao)
     except:
         data_avaliacao = 'indef'
     try:
-        data_visita = ' '.join(review.find('span', class_='_355y0nZn').next_sibling.split())
+        data_visita = review.find('div', class_='_3JxPDYSx').string.split("•")[0]
         data_visita = parse_date(data_visita)
     except:
         data_visita = 'indef'
     try:
-        nota = review.find('span', class_='ui_bubble_rating')['class'][1][-2:]
-        nota = nota[0] + '.' + nota[1]
+        nota = review.find('svg', class_='zWXXYhVR')['title'].split()[0].replace(",", ".")
     except:
         nota = 'indef'
     try:
-        titulo = '\"' + review.find(class_='glasR4aX').string.replace('\"','') + '\"'
+        titulo = '\"' + review.find("span", class_='_2tsgCuqy').string.replace('\"','') + '\"'
     except:
         titulo = 'indef'
     try:
-        read_more = review_selenium.find_element_by_xpath(".//span[@class='_3maEfNCR']")
+        read_more = review_selenium.find_element_by_xpath(".//button[@class='LgQbZEQC _1v-QphLm']")
         driver.execute_script("arguments[0].click();", read_more)
-        conteudo = '\"' + review_selenium.find_element_by_xpath(".//q[@class='IRsGHoPm']").text.replace('\"','').strip() + '\"'
+        div = review_selenium.find_element_by_xpath(".//div[@class='DrjyGw-P _26S7gyB4 _2nPM5Opx']")
+        conteudo = '\"' + div.find_element_by_xpath(".//span[@class='_2tsgCuqy']").text.replace('\"','').strip() + '\"'
         
         #conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"','') + '\"'
     except:
         conteudo = 'indef'
     try:
-        origem = '\"' + review.find('span', class_='default _3J15flPT small').text + '\"'
+        origem = '\"' + review.find('div', class_='DrjyGw-P _26S7gyB4 NGv7A1lw _2yS548m8 _2cnjB3re _1TAWSgm1 _1Z1zA2gh _2-K8UW3T _1dimhEoy').find("span").text + '\"'
     except:
         origem = 'indef'
 
@@ -495,7 +494,6 @@ def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
         'conteudo': conteudo,
         'origem': origem
     }
-    print(data)
     return data
 
 def get_hotel_review_cards(entry_url):
@@ -522,7 +520,7 @@ def get_restaurante_review_cards(entry_url):
 
 def get_atracao_review_cards(entry_url):
     driver = get_driver_selenium(entry_url)
-    review_cards = driver.find_elements_by_xpath("//div[@class='Dq9MAugU T870kzTX LnVzGwUB']")
+    review_cards = driver.find_elements_by_xpath("//div[@class='_1c8_1ITO']/*")
     #soup = get_soup(entry_url)
     #review_cards = soup.findAll('div', class_='Dq9MAugU T870kzTX LnVzGwUB')
     return review_cards, driver
@@ -680,9 +678,9 @@ def get_page_urls(initial_url, page_type):
         pos_to_insert = 2
     elif page_type == 'atracao':
         pos_to_insert = 3
-    elif page_type == 'restaurante-review':
+    elif page_type == 'restaurante-review' or page_type == 'atracao-review':
         entries_by_page = 10
-    elif page_type == 'hotel-review' or page_type == 'atracao-review':
+    elif page_type == 'hotel-review':
         entries_by_page = 5
 
     data_offset = entries_by_page
