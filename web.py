@@ -13,6 +13,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import datetime
 import pandas as pd
+import math
 from webdriver_manager.chrome import ChromeDriverManager
 
 
@@ -722,6 +723,9 @@ def get_max_num_pages(url, page_type):
         num_pages = soup.find('div', id='REVIEWS').findAll('a', class_="pageNum")[-1].string
     elif "atracao" in page_type:
         num_pages = soup.findAll("div", class_="_1w5PB8Rk")[-1].string
+    elif "hotel" == page_type:
+        total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0])
+        num_pages = math.ceil(total_entries/30)
     else:
         num_pages = soup.findAll('a', class_="pageNum")[-1].string
     return int(num_pages)
@@ -745,9 +749,8 @@ def coleta_hoteis(cidade, url, comentarios_flag):
         hoteis_coletados = pd.read_csv(filename)
     except:
         hoteis_coletados = None
+
     hoteis = coleta_dados(cidade, url, get_hotel_data, get_hotel_links, 'hotel', comentarios_flag, hoteis_coletados)
-    if not ONLY_REVIEWS:
-        write_to_file(os.path.join(cidade,'hoteis.csv'), hoteis)
     print("\n{} hoteis coletados\n".format(len(hoteis)))
 
 def coleta_restaurantes(cidade, url, comentarios_flag):
@@ -758,8 +761,6 @@ def coleta_restaurantes(cidade, url, comentarios_flag):
         restaurantes_coletados = None
     
     restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante', comentarios_flag, restaurantes_coletados)
-    if not ONLY_REVIEWS:
-        write_to_file(os.path.join(cidade,'restaurantes.csv'), restaurantes)
     print('\n{} restaurantes coletados\n'.format(len(restaurantes)))
 
 def coleta_atracoes(cidade, url, comentarios_flag):
@@ -768,9 +769,8 @@ def coleta_atracoes(cidade, url, comentarios_flag):
         atracoes_coletadas = pd.read_csv(filename)
     except:
         atracoes_coletadas = None
+
     atracoes = coleta_dados(cidade, url, get_atracao_data, get_atracao_links, 'atracao', comentarios_flag, atracoes_coletadas)
-    if not ONLY_REVIEWS:
-        write_to_file(os.path.join(cidade, 'atracoes.csv'), atracoes)
     print('\n{} atracoes coletadas\n'.format(len(atracoes)))
 
 def get_links_from_city(city_url):
