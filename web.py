@@ -21,14 +21,14 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/5
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
 
-LANGUAGES_TO_COLLECT = ['.br', ''] # '' significa para coletar em ingles
+LANGUAGES_TO_COLLECT = ['.pe', ''] # '' significa para coletar em ingles
 REQUEST_DELAY = 30
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
 UPDATE_REVIEWS = False
 TOO_MUCH_REVIEW_PAGES = 50
 NUM_THREADS_FOR_REVIEW = 8
-NUM_THREADS_FOR_PLACE = 1
+NUM_THREADS_FOR_PLACE = 2
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
@@ -79,8 +79,8 @@ def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
     #soup = get_soup(entry_url)
 
     cidade = soup.find('a', id='global-nav-tourism').string
-    if not cidade.replace(' ','') == city_name.replace(' ', ''):
-        return {}
+    #if not cidade.replace(' ','') == city_name.replace(' ', ''):
+    #    return {}
     
     hotel_id = entry_link.split("-")[2][1:]
     if hoteis_coletados is not None and not UPDATE_REVIEWS:
@@ -185,8 +185,8 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
         cidade = soup.find('a', id='global-nav-tourism').string
     except:
         cidade = 'indef'
-    if not cidade.replace(' ','') == city_name.replace(' ', ''):
-        return {}
+    #if not cidade.replace(' ','') == city_name.replace(' ', ''):
+    #    return {}
 
     restaurant_id = entry_link.split('-')[2][1:]
     if restaurantes_coletados is not None and not UPDATE_REVIEWS:
@@ -268,8 +268,8 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         cidade = soup.find('a', class_="_1T4t-FiN").string
     except:
         cidade = 'indef'
-    if not cidade.replace(' ','') == city_name.replace(' ', ''):
-        return {}
+    #if not cidade.replace(' ','') == city_name.replace(' ', ''):
+    #    return {}
 
     atracao_id = entry_link.split('-')[2][1:]
     if atracoes_coletadas is not None and not UPDATE_REVIEWS:
@@ -720,14 +720,7 @@ def get_max_num_pages(url, page_type):
     soup = get_soup(url)
     if 'restaurante-review' in page_type:
         num_pages = soup.find('div', id='REVIEWS').findAll('a', class_="pageNum")[-1].string
-    elif 'atracao' == page_type:
-        driver = get_driver_selenium(url)
-        driver.implicitly_wait(60)
-        last_page_button = driver.find_elements_by_xpath("//a[@class='_3ghuVozE _2xHyLFC5 _27ZzJr-O']")[-1]
-        num_pages = last_page_button.get_attribute('aria-label')
-        time.sleep(3)
-        driver.quit()
-    elif "atracao-review" == page_type:
+    elif "atracao" in page_type:
         num_pages = soup.findAll("div", class_="_1w5PB8Rk")[-1].string
     else:
         num_pages = soup.findAll('a', class_="pageNum")[-1].string
@@ -929,7 +922,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-            'Tiradentes': 'https://www.tripadvisor.com.br/Tourism-g737098-Tiradentes_State_of_Minas_Gerais-Vacations.html'
+            'Ilhas Galápagos': 'https://www.tripadvisor.com.br/Tourism-g294310-Galapagos_Islands-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
