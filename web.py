@@ -89,7 +89,7 @@ def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
             return {}
 
     try:
-        nome = soup.find(id="HEADING").string.strip()
+        nome = "\"" + soup.find(id="HEADING").string.strip() + "\""
     except:
         nome = 'indef'
     try:
@@ -196,7 +196,7 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
             return {}
 
     try:
-        nome = soup.find('h1', {'data-test-target':'top-info-header'}).string.replace(',', ' |')
+        nome = "\"" + soup.find('h1', {'data-test-target':'top-info-header'}).string.replace(',', ' |') + "\""
     except:
         nome = 'indef'
     try:
@@ -268,7 +268,10 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     try:
         cidade = soup.find('a', class_="_1T4t-FiN").string
     except:
-        cidade = 'indef'
+        try:
+            cidade = soup.find("a", id="global-nav-tourism").string
+        except:
+            cidade = 'indef'
     #if not cidade.replace(' ','') == city_name.replace(' ', ''):
     #    return {}
 
@@ -277,9 +280,12 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         if int(atracao_id) in atracoes_coletadas['atracao_id'].values:
             return {}
     try:
-        nome = soup.find('h1', class_='DrjyGw-P _1SRa-qNz qf3QTY0F').string.strip().replace('\"','')
+        nome = "\"" + soup.find('h1', class_='DrjyGw-P _1SRa-qNz qf3QTY0F').string.strip().replace('\"','') + "\""
     except:
-        nome = 'indef'
+        try:
+            nome = "\"" + soup.find("h1", id="HEADING").string.replace('\"','') + "\""
+        except:
+            nome = 'indef'
     try:
         endereco = '\"' + soup.find("button", class_="LgQbZEQC _1v-QphLm _1fKqJFvt").find('span', class_='DrjyGw-P _1l3JzGX1').string + '\"'
     except:
@@ -291,7 +297,11 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     try:
         nota = soup.find('div', class_='DrjyGw-P _1SRa-qNz _3t0zrF_f _1QGef_ZJ').string
     except:
-        nota = 'indef'
+        try:
+            nota = soup.find("span", class_="ui_bubble_rating")['class'][1].split("_")[1]
+            nota = nota[0] + "." + nota[1]
+        except:
+            nota = 'indef'
     try:
         # So precisa acessar json se for pra escrever a atracao
         if not ONLY_REVIEWS:
@@ -724,7 +734,7 @@ def get_max_num_pages(url, page_type):
     elif "atracao" in page_type:
         num_pages = soup.findAll("div", class_="_1w5PB8Rk")[-1].string
     elif "hotel" == page_type:
-        total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0])
+        total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0].replace(".",""))
         num_pages = math.ceil(total_entries/30)
     else:
         num_pages = soup.findAll('a', class_="pageNum")[-1].string
@@ -922,7 +932,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-            'Ilhas Galápagos': 'https://www.tripadvisor.com.br/Tourism-g294310-Galapagos_Islands-Vacations.html'
+            'Cusco': 'https://www.tripadvisor.com.br/Tourism-g294314-Cusco_Cusco_Region-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
