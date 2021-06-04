@@ -268,7 +268,10 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     try:
         cidade = soup.find('a', class_="_1T4t-FiN").string
     except:
-        cidade = 'indef'
+        try:
+            cidade = soup.find("a", id="global-nav-tourism").string
+        except:
+            cidade = 'indef'
     #if not cidade.replace(' ','') == city_name.replace(' ', ''):
     #    return {}
 
@@ -279,7 +282,10 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     try:
         nome = soup.find('h1', class_='DrjyGw-P _1SRa-qNz qf3QTY0F').string.strip().replace('\"','')
     except:
-        nome = 'indef'
+        try:
+            nome = soup.find("h1", id="HEADING").string.replace('\"','')
+        except:
+            nome = 'indef'
     try:
         endereco = '\"' + soup.find("button", class_="LgQbZEQC _1v-QphLm _1fKqJFvt").find('span', class_='DrjyGw-P _1l3JzGX1').string + '\"'
     except:
@@ -291,7 +297,11 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     try:
         nota = soup.find('div', class_='DrjyGw-P _1SRa-qNz _3t0zrF_f _1QGef_ZJ').string
     except:
-        nota = 'indef'
+        try:
+            nota = soup.find("span", class_="ui_bubble_rating")['class'][1].split("_")[1]
+            nota = nota[0] + "." + nota[1]
+        except:
+            nota = 'indef'
     try:
         # So precisa acessar json se for pra escrever a atracao
         if not ONLY_REVIEWS:
