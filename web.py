@@ -22,7 +22,7 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/5
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
 
-LANGUAGES_TO_COLLECT = ['.pe', ''] # '' significa para coletar em ingles
+LANGUAGES_TO_COLLECT = ['.br', ''] # '' significa para coletar em ingles
 REQUEST_DELAY = 30
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
@@ -272,8 +272,8 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
             cidade = soup.find("a", id="global-nav-tourism").string
         except:
             cidade = 'indef'
-    #if not cidade.replace(' ','') == city_name.replace(' ', ''):
-    #    return {}
+    if not cidade.replace(' ','') == city_name.replace(' ', ''):
+        return {}
 
     atracao_id = entry_link.split('-')[2][1:]
     if atracoes_coletadas is not None and not UPDATE_REVIEWS:
@@ -320,7 +320,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         if UPDATE_REVIEWS:
             comentarios = atualiza_reviews(city_name, nome, atracao_id, 'atracao-review', entry_link, get_atracao_review_data, get_atracao_review_cards)
         else:
-            comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_link, get_atracao_review_data, get_atracao_review_cards)
+            comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', lat, lon, entry_link, get_atracao_review_data, get_atracao_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-atracoes.csv'), comentarios)
     data = {
         'atracao_id': atracao_id,
@@ -455,7 +455,7 @@ def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
     print(data)
     return data
 
-def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
+def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review_selenium):
     review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
         usuario = review.find('a', class_='_7c6GgQ6n _37QDe3gr WullykOU _3WoyIIcL')['href'].split('/')[-1]
@@ -466,11 +466,11 @@ def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
         data_avaliacao = parse_date(data_avaliacao)
     except:
         data_avaliacao = 'indef'
-    try:
+    '''try:
         data_visita = review.find('div', class_='_3JxPDYSx').string.split("•")[0]
         data_visita = parse_date(data_visita)
     except:
-        data_visita = 'indef'
+        data_visita = 'indef'''
     try:
         nota = review.find('svg', class_='zWXXYhVR')['title'].split()[0].replace(",", ".")
     except:
@@ -499,11 +499,13 @@ def get_atracao_review_data(id_, nome, tipo, driver, review_selenium):
         'estabelecimento_tipo': tipo,
         'usuario': usuario,
         'data_avaliacao': data_avaliacao,
-        'data_visita': data_visita,
+        #'data_visita': data_visita,
         'nota': nota,
         'titulo': titulo,
         'conteudo': conteudo,
-        'origem': origem
+        'origem': origem,
+        'latitude': latitude,
+        'longitude': longitude
     }
     return data
 
@@ -551,7 +553,7 @@ def coleta_review_por_url(get_review_data, get_review_cards, review_url):
         driver.quit()
     return data
 
-def coleta_reviews(nome, id_, tipo_review, entry_link, get_review_data, get_review_cards):
+def coleta_reviews(nome, id_, tipo_review, entry_link, lat, lon, get_review_data, get_review_cards):
     review_urls = get_reviews_page_urls(entry_link, tipo_review)
     collected_reviews = []
     for review_urls_by_language in review_urls:
@@ -559,7 +561,7 @@ def coleta_reviews(nome, id_, tipo_review, entry_link, get_review_data, get_revi
         if len(review_urls_by_language) >= TOO_MUCH_REVIEW_PAGES:
             review_urls_by_language = filter_old_reviews(review_urls_by_language, tipo_review)
 
-        partial_extractor = partial(get_review_data, id_, nome, tipo_review)
+        partial_extractor = partial(get_review_data, id_, nome, tipo_review, lat, lon)
         data_extractor = partial(coleta_review_por_url, partial_extractor, get_review_cards)
         
         with ThreadPoolExecutor(NUM_THREADS_FOR_REVIEW) as pool:
@@ -932,7 +934,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-            'Cusco': 'https://www.tripadvisor.com.br/Tourism-g294314-Cusco_Cusco_Region-Vacations.html'
+            'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
