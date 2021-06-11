@@ -458,7 +458,7 @@ def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
 def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review_selenium):
     review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
-        usuario = review.find('a', class_='_7c6GgQ6n _37QDe3gr WullykOU _3WoyIIcL')['href'].split('/')[-1]
+        usuario = review.find('a', class_='_7c6GgQ6n _22upaSQN _37QDe3gr WullykOU _3WoyIIcL')['href'].split('/')[-1]
     except:
         usuario = 'indef'
     try:
@@ -480,14 +480,18 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
     except:
         titulo = 'indef'
     try:
-        read_more = review_selenium.find_element_by_xpath(".//button[@class='LgQbZEQC _1v-QphLm']")
+        read_more = review_selenium.find_element_by_xpath(".//button[@class='LgQbZEQC _22upaSQN _1v-QphLm']")
         driver.execute_script("arguments[0].click();", read_more)
         div = review_selenium.find_element_by_xpath(".//div[@class='DrjyGw-P _26S7gyB4 _2nPM5Opx']")
         conteudo = '\"' + div.find_element_by_xpath(".//span[@class='_2tsgCuqy']").text.replace('\"','').strip() + '\"'
         
         #conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"','') + '\"'
     except:
-        conteudo = 'indef'
+        try:
+            div = review.find("div", class_="DrjyGw-P _26S7gyB4 _2nPM5Opx")
+            conteudo = '\"' + div.find("span", class_="_2tsgCuqy").text.replace('\"','').strip() + '\"'
+        except:
+            conteudo = "indef"
     try:
         origem = '\"' + review.find('div', class_='DrjyGw-P _26S7gyB4 NGv7A1lw _2yS548m8 _2cnjB3re _1TAWSgm1 _1Z1zA2gh _2-K8UW3T _1dimhEoy').find("span").text + '\"'
     except:
@@ -507,6 +511,7 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
         'latitude': latitude,
         'longitude': longitude
     }
+    print(data)
     return data
 
 def get_hotel_review_cards(entry_url):
@@ -739,7 +744,7 @@ def get_max_num_pages(url, page_type):
         num_pages = math.ceil(total_entries/30)
     elif "atracao-review" == page_type:
         text = soup.find("div", class_="_1NyglzPL").text
-        total_entries = [int(word) for word in text.split() if word.isdigit()][0]
+        total_entries = [int(word.replace(".", "")) for word in text.split() if word.replace(".", "").isdigit()][0]
         num_pages = math.ceil(total_entries/10)
     elif "hotel" == page_type:
         total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0].replace(".",""))
