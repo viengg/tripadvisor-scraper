@@ -733,8 +733,14 @@ def get_max_num_pages(url, page_type):
     soup = get_soup(url)
     if 'restaurante-review' in page_type:
         num_pages = soup.find('div', id='REVIEWS').findAll('a', class_="pageNum")[-1].string
-    elif "atracao" in page_type:
-        num_pages = soup.findAll("div", class_="_1w5PB8Rk")[-1].string
+    elif "atracao" == page_type:
+        text = soup.find("div", class_="_1NyglzPL").text
+        total_entries = [int(word) for word in text.split() if word.isdigit()][0]
+        num_pages = math.ceil(total_entries/30)
+    elif "atracao-review" == page_type:
+        text = soup.find("div", class_="_1NyglzPL").text
+        total_entries = [int(word) for word in text.split() if word.isdigit()][0]
+        num_pages = math.ceil(total_entries/10)
     elif "hotel" == page_type:
         total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0].replace(".",""))
         num_pages = math.ceil(total_entries/30)
