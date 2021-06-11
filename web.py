@@ -320,7 +320,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         if UPDATE_REVIEWS:
             comentarios = atualiza_reviews(city_name, nome, atracao_id, 'atracao-review', entry_link, get_atracao_review_data, get_atracao_review_cards)
         else:
-            comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', lat, lon, entry_link, get_atracao_review_data, get_atracao_review_cards)
+            comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_link, lat, lon, get_atracao_review_data, get_atracao_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-atracoes.csv'), comentarios)
     data = {
         'atracao_id': atracao_id,
