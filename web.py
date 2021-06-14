@@ -245,7 +245,7 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
         if UPDATE_REVIEWS:
             comentarios = atualiza_reviews(city_name, nome, restaurant_id, 'restaurante-review', entry_link, get_restaurante_review_data, get_restaurante_review_cards)
         else:
-            comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_link, get_restaurante_review_data, get_restaurante_review_cards)
+            comentarios = coleta_reviews(nome, restaurant_id, 'restaurante-review', entry_link, lat, lon, get_restaurante_review_data, get_restaurante_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-restaurantes.csv'), comentarios)
     data = {
         'restaurante_id': restaurant_id,
@@ -401,7 +401,7 @@ def get_hotel_review_data(id_, nome, tipo, driver, review_selenium):
     print(data)
     return data
 
-def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
+def get_restaurante_review_data(id_, nome, tipo, latitude, longitude, driver, review_selenium):
     review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
         usuario = review.find('div', class_='info_text pointer_cursor').div.text
@@ -425,11 +425,11 @@ def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
         data_avaliacao = parse_date(data_avaliacao)
     except:
         data_avaliacao= 'indef'
-    try:
+    '''try:
         data_visita = ' '.join(review.find('div', class_='prw_rup prw_reviews_stay_date_hsx').text.split()[3:])
         data_visita = parse_date(data_visita)
     except:
-        data_visita = 'indef'
+        data_visita = 'indef'''
     try:
         nota = review.find('span', class_='ui_bubble_rating')['class'][1][-2:]
         nota = nota[0] + '.' + nota[1]
@@ -451,11 +451,13 @@ def get_restaurante_review_data(id_, nome, tipo, driver, review_selenium):
         'estabelecimento_tipo': tipo,
         'usuario': usuario,
         'data_avaliacao': data_avaliacao,
-        'data_visita': data_visita,
+        #'data_visita': data_visita,
         'nota': nota,
         'titulo': titulo,
         'conteudo': conteudo,
-        'origem': origem
+        'origem': origem,
+        'latitude': latitude,
+        'longitude': longitude
     }
     print(data)
     return data
@@ -741,8 +743,18 @@ def write_to_file(filename, data):
 #Retorna o numero de paginas total
 def get_max_num_pages(url, page_type):
     soup = get_soup(url)
-    if 'restaurante-review' in page_type:
-        num_pages = soup.find('div', id='REVIEWS').findAll('a', class_="pageNum")[-1].string
+    if 'restaurante-review' == page_type:
+        choices = soup.find("div", class_="choices")
+        num_reviews_list = choices.findAll("span", class_="row_num is-shown-at-tablet")
+        total_entries = sum([int(num.text.replace(".", "")) for num in num_reviews_list])
+        num_pages = math.ceil(total_entries/10)
+    elif "restaurante" == page_type:
+        driver = get_driver_selenium(url)
+        driver.implicitly_wait(30)
+        total_entries = int(driver.find_element_by_xpath("//span[@class='_1D_QUaKi']").text.replace(".", ""))
+        num_pages = math.ceil(total_entries/30)
+        time.sleep(3)
+        driver.quit()
     elif "atracao" == page_type:
         text = soup.find("div", class_="_1NyglzPL").text
         total_entries = [int(word.replace(".", "")) for word in text.split() if word.replace(".", "").isdigit()][0]
@@ -756,7 +768,7 @@ def get_max_num_pages(url, page_type):
         num_pages = math.ceil(total_entries/30)
     else:
         num_pages = soup.findAll('a', class_="pageNum")[-1].string
-    return int(num_pages)
+    return num_pages
 
 #Coleta dados de hoteis/restaurantes/atracoes (lista de listas)
 def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type, comentarios_flag, instancias_coletadas):
@@ -948,21 +960,22 @@ def marca_data_coleta(cidade, tipo):
 
 
 if __name__ == "__main__":
-    start_time = time.time()
-    cidades = {
-            'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
-    }
-    nome_cidades = cidades.keys()
-    make_dirs(nome_cidades)
+    # start_time = time.time()
+    # cidades = {
+    #         'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
+    # }
+    # nome_cidades = cidades.keys()
+    # make_dirs(nome_cidades)
 
-    tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
-    comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
-    mode = tipo_coleta + comentarios_flag
-    clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
+    # tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
+    # comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
+    # mode = tipo_coleta + comentarios_flag
+    # clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
     
-    if clear_flag is True:
-        clear_files(nome_cidades, mode)
+    # if clear_flag is True:
+    #     clear_files(nome_cidades, mode)
     
-    coleta_cidades(cidades, mode)
+    # coleta_cidades(cidades, mode)
 
-    print('tempo de execução: {} minutos'.format((time.time() - start_time)/60))
+    # print('tempo de execução: {} minutos'.format((time.time() - start_time)/60))
+    print(get_max_num_pages("https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html", "restaurante"))
