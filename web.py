@@ -29,7 +29,7 @@ ONLY_REVIEWS = False
 UPDATE_REVIEWS = False
 TOO_MUCH_REVIEW_PAGES = 50
 NUM_THREADS_FOR_REVIEW = 8
-NUM_THREADS_FOR_PLACE = 2
+NUM_THREADS_FOR_PLACE = 3
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
@@ -54,21 +54,26 @@ def get_driver_selenium(url):
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
+    #chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('disable-infobars')
     chrome_options.add_argument('--disable-extensions')
     chrome_options.add_argument('--disable-gpu')
 
-    max_num_tries = 3
+    print("acessando " + url)
+    wd = webdriver.Chrome(options=chrome_options)
+    wd.get(url)
+    time.sleep(REQUEST_DELAY)
+    '''max_num_tries = 3
     while max_num_tries > 0:
         try:
+            print("acessando " + url)
             wd = webdriver.Chrome(options=chrome_options)
             wd.get(url)
             time.sleep(REQUEST_DELAY)
             break
         except:
             time.sleep(5*60)
-            max_num_tries -= 1
+            max_num_tries -= 1'''
     return wd
 
 #A partir de um link de hotel, entra na pagina do hotel em questao
@@ -287,7 +292,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         except:
             nome = 'indef'
     try:
-        endereco = '\"' + soup.find("button", class_="LgQbZEQC _1v-QphLm _1fKqJFvt").find('span', class_='DrjyGw-P _1l3JzGX1').string + '\"'
+        endereco = '\"' + soup.find("button", class_="LgQbZEQC _22upaSQN _1v-QphLm _1fKqJFvt").find('span', class_='DrjyGw-P _1l3JzGX1').string + '\"'
     except:
         endereco = 'indef'
     try:
@@ -740,7 +745,7 @@ def get_max_num_pages(url, page_type):
         num_pages = soup.find('div', id='REVIEWS').findAll('a', class_="pageNum")[-1].string
     elif "atracao" == page_type:
         text = soup.find("div", class_="_1NyglzPL").text
-        total_entries = [int(word) for word in text.split() if word.isdigit()][0]
+        total_entries = [int(word.replace(".", "")) for word in text.split() if word.replace(".", "").isdigit()][0]
         num_pages = math.ceil(total_entries/30)
     elif "atracao-review" == page_type:
         text = soup.find("div", class_="_1NyglzPL").text
@@ -798,7 +803,7 @@ def coleta_atracoes(cidade, url, comentarios_flag):
 
 def get_links_from_city(city_url):
     soup = get_soup(city_url)
-    links = soup.findAll('a', {'class': '_1ulyogkG'})
+    links = soup.findAll('a', {'class': '_2HtGEjYV _22upaSQN'})
     hotel_url = 'https://www.tripadvisor.com.br'+ links[0]['href']
     restaurante_url = 'https://www.tripadvisor.com.br' + links[3]['href']
     atracao_url = 'https://www.tripadvisor.com.br' + links[2]['href']
