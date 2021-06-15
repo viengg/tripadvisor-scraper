@@ -22,7 +22,7 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/5
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
 
-LANGUAGES_TO_COLLECT = ['.br', ''] # '' significa para coletar em ingles
+LANGUAGES_TO_COLLECT = [''] # '' significa para coletar em ingles
 REQUEST_DELAY = 30
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
@@ -277,8 +277,8 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
             cidade = soup.find("a", id="global-nav-tourism").string
         except:
             cidade = 'indef'
-    if not cidade.replace(' ','') == city_name.replace(' ', ''):
-        return {}
+    #if not cidade.replace(' ','') == city_name.replace(' ', ''):
+    #    return {}
 
     atracao_id = entry_link.split('-')[2][1:]
     if atracoes_coletadas is not None and not UPDATE_REVIEWS:
@@ -326,7 +326,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
             comentarios = atualiza_reviews(city_name, nome, atracao_id, 'atracao-review', entry_link, get_atracao_review_data, get_atracao_review_cards)
         else:
             comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_link, lat, lon, get_atracao_review_data, get_atracao_review_cards)
-        write_to_file(os.path.join(city_name,'avaliacoes-atracoes.csv'), comentarios)
+        write_to_file(os.path.join(city_name,'avaliacoes-parques.csv'), comentarios)
     data = {
         'atracao_id': atracao_id,
         'nome': nome,
@@ -340,7 +340,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     }
     print(nome + ' coletado')
     if not ONLY_REVIEWS:
-        write_to_file(os.path.join(city_name,'atracoes.csv'), [data])
+        write_to_file(os.path.join(city_name,'parques.csv'), [data])
     return data
 
 def get_hotel_review_data(id_, nome, tipo, driver, review_selenium):
@@ -771,15 +771,13 @@ def get_max_num_pages(url, page_type):
     return num_pages
 
 #Coleta dados de hoteis/restaurantes/atracoes (lista de listas)
-def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type, comentarios_flag, instancias_coletadas):
-    page_urls = get_page_urls(initial_url, page_type)
+def coleta_dados(cidade, data_extractor, links, comentarios_flag, instancias_coletadas):
     data_extractor = partial(data_extractor, cidade, comentarios_flag, instancias_coletadas)
     data = []
-    for url in page_urls:
-        links = get_links(url)
-        with ThreadPoolExecutor(NUM_THREADS_FOR_PLACE) as pool:
-            d = pool.map(data_extractor, links)
-        data += list(d)
+
+    with ThreadPoolExecutor(NUM_THREADS_FOR_PLACE) as pool:
+        d = pool.map(data_extractor, links)
+    data += list(d)
 
     return data
 
@@ -803,14 +801,16 @@ def coleta_restaurantes(cidade, url, comentarios_flag):
     restaurantes = coleta_dados(cidade, url, get_restaurante_data, get_restaurante_links, 'restaurante', comentarios_flag, restaurantes_coletados)
     print('\n{} restaurantes coletados\n'.format(len(restaurantes)))
 
-def coleta_atracoes(cidade, url, comentarios_flag):
-    filename = os.path.join(cidade,'atracoes.csv')
+def coleta_atracoes(cidade, comentarios_flag):
+    filename = os.path.join(cidade,'parques.csv')
     try:
         atracoes_coletadas = pd.read_csv(filename)
     except:
         atracoes_coletadas = None
+    df = pd.read_csv("TA_list_parks.txt", delimiter="##", engine="python")
+    links = df.link
 
-    atracoes = coleta_dados(cidade, url, get_atracao_data, get_atracao_links, 'atracao', comentarios_flag, atracoes_coletadas)
+    atracoes = coleta_dados(cidade, get_atracao_data, links, comentarios_flag, atracoes_coletadas)
     print('\n{} atracoes coletadas\n'.format(len(atracoes)))
 
 def get_links_from_city(city_url):
@@ -952,7 +952,7 @@ def marca_data_coleta(cidade, tipo):
         with open(os.path.join(cidade, 'data_coleta_hotel.txt'), 'w') as f:
             f.write(data+'\n')
     if tipo == 'atracao':
-        with open(os.path.join(cidade, 'data_coleta_atracao.txt'), 'w') as f:
+        with open(os.path.join(cidade, 'data_coleta_parques.txt'), 'w') as f:
             f.write(data+'\n')
     if tipo == 'restaurante':
         with open(os.path.join(cidade, 'data_coleta_restaurante.txt'), 'w') as f:
@@ -978,4 +978,4 @@ if __name__ == "__main__":
     # coleta_cidades(cidades, mode)
 
     # print('tempo de execução: {} minutos'.format((time.time() - start_time)/60))
-    print(get_max_num_pages("https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html", "restaurante"))
+    coleta_atracoes("Amir", "s")
