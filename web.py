@@ -59,7 +59,6 @@ def get_driver_selenium(url):
     chrome_options.add_argument('--disable-extensions')
     chrome_options.add_argument('--disable-gpu')
 
-    print("acessando " + url)
     wd = webdriver.Chrome(options=chrome_options)
     wd.get(url)
     time.sleep(REQUEST_DELAY)
@@ -746,7 +745,7 @@ def get_max_num_pages(url, page_type):
     if 'restaurante-review' == page_type:
         choices = soup.find("div", class_="choices")
         num_reviews_list = choices.findAll("span", class_="row_num is-shown-at-tablet")
-        total_entries = sum([int(num.text.replace(".", "")) for num in num_reviews_list])
+        total_entries = sum([int(num.text.replace(".", "").replace(",", "")) for num in num_reviews_list])
         num_pages = math.ceil(total_entries/10)
     elif "restaurante" == page_type:
         driver = get_driver_selenium(url)
@@ -757,14 +756,14 @@ def get_max_num_pages(url, page_type):
         driver.quit()
     elif "atracao" == page_type:
         text = soup.find("div", class_="_1NyglzPL").text
-        total_entries = [int(word.replace(".", "")) for word in text.split() if word.replace(".", "").isdigit()][0]
+        total_entries = [int(word.replace(".", "").replace(",", "")) for word in text.split() if word.replace(".", "").replace(",", "").isdigit()][0]
         num_pages = math.ceil(total_entries/30)
     elif "atracao-review" == page_type:
         text = soup.find("div", class_="_1NyglzPL").text
-        total_entries = [int(word.replace(".", "")) for word in text.split() if word.replace(".", "").isdigit()][0]
+        total_entries = [int(word.replace(".", "").replace(",", "")) for word in text.split() if word.replace(".", "").replace(",", "").isdigit()][0]
         num_pages = math.ceil(total_entries/10)
     elif "hotel" == page_type:
-        total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0].replace(".",""))
+        total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0].replace(".","").replace(",", ""))
         num_pages = math.ceil(total_entries/30)
     else:
         num_pages = soup.findAll('a', class_="pageNum")[-1].string
@@ -960,22 +959,22 @@ def marca_data_coleta(cidade, tipo):
 
 
 if __name__ == "__main__":
-    # start_time = time.time()
-    # cidades = {
-    #         'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
-    # }
-    # nome_cidades = cidades.keys()
-    # make_dirs(nome_cidades)
+    start_time = time.time()
+    cidades = {
+            'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
+    }
+    nome_cidades = cidades.keys()
+    make_dirs(nome_cidades)
 
-    # tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
-    # comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
-    # mode = tipo_coleta + comentarios_flag
-    # clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
+    tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
+    comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
+    mode = tipo_coleta + comentarios_flag
+    clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
     
-    # if clear_flag is True:
-    #     clear_files(nome_cidades, mode)
+    if clear_flag is True:
+        clear_files(nome_cidades, mode)
     
-    # coleta_cidades(cidades, mode)
+    coleta_cidades(cidades, mode)
 
-    # print('tempo de execução: {} minutos'.format((time.time() - start_time)/60))
-    print(get_max_num_pages("https://www.tripadvisor.com.br/Restaurants-g303389-Ouro_Preto_State_of_Minas_Gerais.html", "restaurante"))
+    print('tempo de execução: {} minutos'.format((time.time() - start_time)/60))
+    #print(get_max_num_pages("https://www.tripadvisor.com.br/Attraction_Review-g60724-d8535374-Reviews-Arches_National_Park-Moab_Utah.html", "atracao-review"))
