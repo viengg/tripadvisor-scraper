@@ -14,7 +14,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import datetime
 import pandas as pd
 import math
-from webdriver_manager.chrome import ChromeDriverManager
+#from webdriver_manager.chrome import ChromeDriverManager
 
 
 #session = requests.Session()
@@ -156,7 +156,7 @@ def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
         if UPDATE_REVIEWS:
             comentarios = atualiza_reviews(city_name, nome, hotel_id, 'hotel-review', entry_link, get_hotel_review_data, get_hotel_review_cards)
         else:
-            comentarios = coleta_reviews(nome, hotel_id, 'hotel-review', entry_link, get_hotel_review_data, get_hotel_review_cards)
+            comentarios = coleta_reviews(nome, hotel_id, 'hotel-review', entry_link, lat, lon, get_hotel_review_data, get_hotel_review_cards)
         write_to_file(os.path.join(city_name, 'avaliacoes-hoteis.csv'), comentarios)
     data ={
         'hotel_id': hotel_id,
@@ -342,7 +342,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         write_to_file(os.path.join(city_name,'atracoes.csv'), [data])
     return data
 
-def get_hotel_review_data(id_, nome, tipo, driver, review_selenium):
+def get_hotel_review_data(id_, nome, tipo, latitude, longitude, driver, review_selenium):
     review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
     try:
         usuario = review.find('a', class_='ui_header_link _1r_My98y')['href'].split('/')[-1]
@@ -395,7 +395,9 @@ def get_hotel_review_data(id_, nome, tipo, driver, review_selenium):
         'titulo': titulo,
         'conteudo': conteudo,
         'tipo_viagem': tipo_viagem,
-        'origem': origem
+        'origem': origem,
+        "latitude": latitude,
+        "longitude": longitude
     }
     print(data)
     return data
@@ -971,22 +973,21 @@ def marca_data_coleta(cidade, tipo):
 
 
 if __name__ == "__main__":
-    # start_time = time.time()
-    # cidades = {
-    #         'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
-    # }
-    # nome_cidades = cidades.keys()
-    # make_dirs(nome_cidades)
+    start_time = time.time()
+    cidades = {
+            'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
+    }
+    nome_cidades = cidades.keys()
+    make_dirs(nome_cidades)
 
-    # tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
-    # comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
-    # mode = tipo_coleta + comentarios_flag
-    # clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
+    tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
+    comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
+    mode = tipo_coleta + comentarios_flag
+    clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
     
-    # if clear_flag is True:
-    #     clear_files(nome_cidades, mode)
+    if clear_flag is True:
+        clear_files(nome_cidades, mode)
     
-    # coleta_cidades(cidades, mode)
+    coleta_cidades(cidades, mode)
 
-    # print('tempo de execução: {} minutos'.format((time.time() - start_time)/60))
-    print(get_max_num_pages("https://www.tripadvisor.com/Hotel_Review-g3844566-d6875455-Reviews-Pousada_Chao_de_Minas-Cachoeira_do_Campo_Ouro_Preto_State_of_Minas_Gerais.html", "hotel-review"))
+    print('tempo de execução: {} minutos'.format((time.time() - start_time)/60))
