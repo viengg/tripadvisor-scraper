@@ -765,6 +765,18 @@ def get_max_num_pages(url, page_type):
     elif "hotel" == page_type:
         total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0].replace(".","").replace(",", ""))
         num_pages = math.ceil(total_entries/30)
+    elif "hotel-review" == page_type:
+        total_entries = int(soup.find("span", class_='_33O9dg0j').string.split()[0].replace('.','').replace(",", ""))
+
+        offset_package = 'or' + str(5 * round((total_entries-5)/5))
+        pos_to_insert = 4
+        url_to_offset = url.split('-')
+        url_to_offset.insert(pos_to_insert, offset_package)
+        last_page_url = '-'.join(url_to_offset)
+
+        last_page_soup = get_soup(last_page_url)
+        num_pages = int(last_page_soup.findAll('a', class_="pageNum")[-1].string.replace('.','').replace(",", ""))
+
     else:
         num_pages = soup.findAll('a', class_="pageNum")[-1].string
     return num_pages
@@ -959,22 +971,22 @@ def marca_data_coleta(cidade, tipo):
 
 
 if __name__ == "__main__":
-    start_time = time.time()
-    cidades = {
-            'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
-    }
-    nome_cidades = cidades.keys()
-    make_dirs(nome_cidades)
+    # start_time = time.time()
+    # cidades = {
+    #         'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
+    # }
+    # nome_cidades = cidades.keys()
+    # make_dirs(nome_cidades)
 
-    tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
-    comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
-    mode = tipo_coleta + comentarios_flag
-    clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
+    # tipo_coleta = input('Digite o modo de coleta (1: hoteis; 2: restaurantes; 3: atracoes)> ')
+    # comentarios_flag = input('Deseja coletar os comentarios? (s/n)> ')
+    # mode = tipo_coleta + comentarios_flag
+    # clear_flag = True if input('Deseja limpar os arquivos? (s/n)> ') == 's' else False
     
-    if clear_flag is True:
-        clear_files(nome_cidades, mode)
+    # if clear_flag is True:
+    #     clear_files(nome_cidades, mode)
     
-    coleta_cidades(cidades, mode)
+    # coleta_cidades(cidades, mode)
 
-    print('tempo de execução: {} minutos'.format((time.time() - start_time)/60))
-    #print(get_max_num_pages("https://www.tripadvisor.com.br/Attraction_Review-g60724-d8535374-Reviews-Arches_National_Park-Moab_Utah.html", "atracao-review"))
+    # print('tempo de execução: {} minutos'.format((time.time() - start_time)/60))
+    print(get_max_num_pages("https://www.tripadvisor.com/Hotel_Review-g3844566-d6875455-Reviews-Pousada_Chao_de_Minas-Cachoeira_do_Campo_Ouro_Preto_State_of_Minas_Gerais.html", "hotel-review"))
