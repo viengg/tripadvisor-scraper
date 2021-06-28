@@ -1,1 +1,2 @@
 Cusco/avaliacoes-hoteis.csv filter=lfs diff=lfs merge=lfs -text
+Santiago/ filter=lfs diff=lfs merge=lfs -text
