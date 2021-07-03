@@ -14,7 +14,6 @@ from selenium.webdriver.support import expected_conditions as EC
 import datetime
 import pandas as pd
 import math
-from webdriver_manager.chrome import ChromeDriverManager
 
 
 #session = requests.Session()
@@ -23,28 +22,29 @@ language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
 
 LANGUAGES_TO_COLLECT = [''] # '' significa para coletar em ingles
-REQUEST_DELAY = 30
+REQUEST_DELAY = 60
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
 UPDATE_REVIEWS = False
 TOO_MUCH_REVIEW_PAGES = 50
 NUM_THREADS_FOR_REVIEW = 8
-NUM_THREADS_FOR_PLACE = 3
+NUM_THREADS_FOR_PLACE = 1
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
+    r = requests.get(url)
+    soup = BeautifulSoup(r.text, 'html.parser')
+    return soup
     
-    max_num_tries = 3
+'''    max_num_tries = 3
     while max_num_tries > 0:
         try:
             r = requests.get(url, headers=headers)
             break
         except:
             time.sleep(5*60)
-            max_num_tries -= 1
+            max_num_tries -= 1'''
 
-    soup = BeautifulSoup(r.text, 'lxml')
-    return soup
 
 def parse_date(date):
     date_parsed = str(dateparser.parse(date))
@@ -59,7 +59,6 @@ def get_driver_selenium(url):
     chrome_options.add_argument('--disable-extensions')
     chrome_options.add_argument('--disable-gpu')
 
-    print("acessando " + url)
     wd = webdriver.Chrome(options=chrome_options)
     wd.get(url)
     time.sleep(REQUEST_DELAY)
@@ -269,6 +268,7 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
 def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link):
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
+    print("pegou soup " + entry_url)
     
     try:
         cidade = soup.find('a', class_="_1T4t-FiN").string
@@ -283,6 +283,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     atracao_id = entry_link.split('-')[2][1:]
     if atracoes_coletadas is not None and not UPDATE_REVIEWS:
         if int(atracao_id) in atracoes_coletadas['atracao_id'].values:
+            print("saiu "+entry_url)
             return {}
     try:
         nome = "\"" + soup.find('h1', class_='DrjyGw-P _1SRa-qNz qf3QTY0F').string.strip().replace('\"','') + "\""
@@ -321,12 +322,16 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         lat = 'indef'
         lon = 'indef'
     
+    print("avaliacoes: " + avaliacoes)
     if avaliacoes != '0' and comentarios_flag == 's':
         if UPDATE_REVIEWS:
             comentarios = atualiza_reviews(city_name, nome, atracao_id, 'atracao-review', entry_link, get_atracao_review_data, get_atracao_review_cards)
         else:
+            print("coletando " + entry_url)
             comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_link, lat, lon, get_atracao_review_data, get_atracao_review_cards)
-        write_to_file(os.path.join(city_name,'avaliacoes-parques.csv'), comentarios)
+            print("terminou de coletar " + entry_url)
+        print("escrevendo no arquivo")
+        write_to_file(os.path.join(city_name,'avaliacoes-museus.csv'), comentarios)
     data = {
         'atracao_id': atracao_id,
         'nome': nome,
@@ -463,7 +468,7 @@ def get_restaurante_review_data(id_, nome, tipo, latitude, longitude, driver, re
     return data
 
 def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review_selenium):
-    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
+    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'html.parser')
     try:
         usuario = review.find('a', class_='_7c6GgQ6n _22upaSQN _37QDe3gr WullykOU _3WoyIIcL')['href'].split('/')[-1]
     except:
@@ -473,11 +478,11 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
         data_avaliacao = parse_date(data_avaliacao)
     except:
         data_avaliacao = 'indef'
-    '''try:
+    try:
         data_visita = review.find('div', class_='_3JxPDYSx').string.split("•")[0]
         data_visita = parse_date(data_visita)
     except:
-        data_visita = 'indef'''
+        data_visita = 'indef'
     try:
         nota = review.find('svg', class_='zWXXYhVR')['title'].split()[0].replace(",", ".")
     except:
@@ -510,7 +515,7 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
         'estabelecimento_tipo': tipo,
         'usuario': usuario,
         'data_avaliacao': data_avaliacao,
-        #'data_visita': data_visita,
+        'data_visita': data_visita,
         'nota': nota,
         'titulo': titulo,
         'conteudo': conteudo,
@@ -568,6 +573,7 @@ def coleta_review_por_url(get_review_data, get_review_cards, review_url):
 def coleta_reviews(nome, id_, tipo_review, entry_link, lat, lon, get_review_data, get_review_cards):
     review_urls = get_reviews_page_urls(entry_link, tipo_review)
     collected_reviews = []
+    print("dentro coleta_reviews")
     for review_urls_by_language in review_urls:
         # Muitas paginas -> vale a pena filtrar
         if len(review_urls_by_language) >= TOO_MUCH_REVIEW_PAGES:
@@ -757,11 +763,11 @@ def get_max_num_pages(url, page_type):
         driver.quit()
     elif "atracao" == page_type:
         text = soup.find("div", class_="_1NyglzPL").text
-        total_entries = [int(word.replace(".", "")) for word in text.split() if word.replace(".", "").isdigit()][0]
+        total_entries = [int(word.replace(".", "").replace(",","")) for word in text.split() if word.replace(".", "").replace(",","").isdigit()][0]
         num_pages = math.ceil(total_entries/30)
     elif "atracao-review" == page_type:
         text = soup.find("div", class_="_1NyglzPL").text
-        total_entries = [int(word.replace(".", "")) for word in text.split() if word.replace(".", "").isdigit()][0]
+        total_entries = [int(word.replace(".", "").replace(",","")) for word in text.split() if word.replace(".", "").replace(",","").isdigit()][0]
         num_pages = math.ceil(total_entries/10)
     elif "hotel" == page_type:
         total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0].replace(".",""))
@@ -802,13 +808,13 @@ def coleta_restaurantes(cidade, url, comentarios_flag):
     print('\n{} restaurantes coletados\n'.format(len(restaurantes)))
 
 def coleta_atracoes(cidade, comentarios_flag):
-    filename = os.path.join(cidade,'parques.csv')
+    filename = os.path.join(cidade,'museus.csv')
     try:
         atracoes_coletadas = pd.read_csv(filename)
     except:
         atracoes_coletadas = None
-    df = pd.read_csv("TA_list_parks.txt", delimiter="##", engine="python")
-    links = df.link
+    df = pd.read_csv("TA_indoors_list_museums.csv")
+    links = list(map(lambda link: "/" + link, df.TA_link.values))
 
     atracoes = coleta_dados(cidade, get_atracao_data, links, comentarios_flag, atracoes_coletadas)
     print('\n{} atracoes coletadas\n'.format(len(atracoes)))
