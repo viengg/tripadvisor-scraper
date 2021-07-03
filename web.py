@@ -752,7 +752,7 @@ def get_max_num_pages(url, page_type):
     if 'restaurante-review' == page_type:
         choices = soup.find("div", class_="choices")
         num_reviews_list = choices.findAll("span", class_="row_num is-shown-at-tablet")
-        total_entries = sum([int(num.text.replace(".", "")) for num in num_reviews_list])
+        total_entries = sum([int(num.text.replace(".", "").replace(",", "")) for num in num_reviews_list])
         num_pages = math.ceil(total_entries/10)
     elif "restaurante" == page_type:
         driver = get_driver_selenium(url)
@@ -770,7 +770,7 @@ def get_max_num_pages(url, page_type):
         total_entries = [int(word.replace(".", "").replace(",","")) for word in text.split() if word.replace(".", "").replace(",","").isdigit()][0]
         num_pages = math.ceil(total_entries/10)
     elif "hotel" == page_type:
-        total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0].replace(".",""))
+        total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0].replace(".","").replace(",", ""))
         num_pages = math.ceil(total_entries/30)
     else:
         num_pages = soup.findAll('a', class_="pageNum")[-1].string
