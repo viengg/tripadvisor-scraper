@@ -27,7 +27,7 @@ COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
 UPDATE_REVIEWS = False
 TOO_MUCH_REVIEW_PAGES = 50
-NUM_THREADS_FOR_REVIEW = 8
+NUM_THREADS_FOR_REVIEW = 16
 NUM_THREADS_FOR_PLACE = 1
 
 def get_soup(url):
@@ -59,20 +59,17 @@ def get_driver_selenium(url):
     chrome_options.add_argument('--disable-extensions')
     chrome_options.add_argument('--disable-gpu')
 
-    wd = webdriver.Chrome(options=chrome_options)
-    wd.get(url)
     time.sleep(REQUEST_DELAY)
-    '''max_num_tries = 3
+    max_num_tries = 3
     while max_num_tries > 0:
         try:
-            print("acessando " + url)
             wd = webdriver.Chrome(options=chrome_options)
             wd.get(url)
             time.sleep(REQUEST_DELAY)
             break
         except:
             time.sleep(5*60)
-            max_num_tries -= 1'''
+            max_num_tries -= 1
     return wd
 
 #A partir de um link de hotel, entra na pagina do hotel em questao
@@ -268,7 +265,6 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
 def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link):
     entry_url = trip_url + entry_link
     soup = get_soup(entry_url)
-    print("pegou soup " + entry_url)
     
     try:
         cidade = soup.find('a', class_="_1T4t-FiN").string
@@ -283,7 +279,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     atracao_id = entry_link.split('-')[2][1:]
     if atracoes_coletadas is not None and not UPDATE_REVIEWS:
         if int(atracao_id) in atracoes_coletadas['atracao_id'].values:
-            print("saiu "+entry_url)
+            print("ja coletou " + atracao_id)
             return {}
     try:
         nome = "\"" + soup.find('h1', class_='DrjyGw-P _1SRa-qNz qf3QTY0F').string.strip().replace('\"','') + "\""
@@ -327,11 +323,8 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         if UPDATE_REVIEWS:
             comentarios = atualiza_reviews(city_name, nome, atracao_id, 'atracao-review', entry_link, get_atracao_review_data, get_atracao_review_cards)
         else:
-            print("coletando " + entry_url)
             comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_link, lat, lon, get_atracao_review_data, get_atracao_review_cards)
-            print("terminou de coletar " + entry_url)
-        print("escrevendo no arquivo")
-        write_to_file(os.path.join(city_name,'avaliacoes-museus.csv'), comentarios)
+        write_to_file(os.path.join(city_name,'avaliacoes-parques1.csv'), comentarios)
     data = {
         'atracao_id': atracao_id,
         'nome': nome,
@@ -345,7 +338,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     }
     print(nome + ' coletado')
     if not ONLY_REVIEWS:
-        write_to_file(os.path.join(city_name,'parques.csv'), [data])
+        write_to_file(os.path.join(city_name,'parques1.csv'), [data])
     return data
 
 def get_hotel_review_data(id_, nome, tipo, driver, review_selenium):
@@ -808,13 +801,14 @@ def coleta_restaurantes(cidade, url, comentarios_flag):
     print('\n{} restaurantes coletados\n'.format(len(restaurantes)))
 
 def coleta_atracoes(cidade, comentarios_flag):
-    filename = os.path.join(cidade,'museus.csv')
+    filename = os.path.join(cidade,'parques1.csv')
     try:
         atracoes_coletadas = pd.read_csv(filename)
     except:
         atracoes_coletadas = None
-    df = pd.read_csv("TA_indoors_list_museums.csv")
-    links = list(map(lambda link: "/" + link, df.TA_link.values))
+    df = pd.read_csv("TA_list_parks.txt", delimiter="##", engine="python")
+    df['type'] = df.apply(lambda row: "Attraction" in row['link'], axis=1)
+    links = df[df['type'] == True].iloc[:300]['link']
 
     atracoes = coleta_dados(cidade, get_atracao_data, links, comentarios_flag, atracoes_coletadas)
     print('\n{} atracoes coletadas\n'.format(len(atracoes)))
