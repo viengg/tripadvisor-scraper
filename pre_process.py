@@ -2,14 +2,14 @@ import pandas as pd
 from langdetect import detect
 import os
 
-cidades = ['Ouro Preto']
+cidades = ['Cusco']
 for cidade in cidades:
 
     hotel = pd.read_csv(os.path.join(cidade, 'hoteis.csv'), dtype={"latitude": "string", "longitude": "string"}).drop_duplicates('hotel_id')
-    restaurantes = pd.read_csv(os.path.join(cidade, 'restaurantes.csv'), dtype={"latitude": "string", "longitude": "string"}).drop_duplicates()
-    atracoes = pd.read_csv(os.path.join(cidade, 'atracoes.csv'), dtype={"latitude": "string", "longitude": "string"}).drop_duplicates()
+    restaurantes = pd.read_csv(os.path.join(cidade, 'restaurantes.csv'), dtype={"latitude": "string", "longitude": "string"}).drop_duplicates("restaurante_id")
+    atracoes = pd.read_csv(os.path.join(cidade, 'atracoes.csv'), dtype={"latitude": "string", "longitude": "string"}).drop_duplicates("atracao_id")
 
-    aval_hotel = pd.read_csv(os.path.join(cidade, 'avaliacoes-hoteis.csv'), dtype={"latitude": "string", "longitude": "string"}).drop_duplicates()
+    aval_hotel = pd.read_csv(os.path.join(cidade, 'avaliacoes-hoteis.csv'), dtype={"latitude": "string", "longitude": "string"}, error_bad_lines=False).drop_duplicates()
     aval_rest = pd.read_csv(os.path.join(cidade, 'avaliacoes-restaurantes.csv'), dtype={"latitude": "string", "longitude": "string"})
     aval_rest = aval_rest.drop_duplicates(aval_rest.columns[:-2])
     aval_atr = pd.read_csv(os.path.join(cidade, 'avaliacoes-atracoes.csv'), dtype={"latitude": "string", "longitude": "string"}).drop_duplicates()
