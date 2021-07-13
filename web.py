@@ -59,10 +59,8 @@ def get_driver_selenium(url):
     chrome_options.add_argument('--disable-extensions')
     chrome_options.add_argument('--disable-gpu')
 
-    wd = webdriver.Chrome(options=chrome_options)
-    wd.get(url)
     time.sleep(REQUEST_DELAY)
-    '''max_num_tries = 3
+    max_num_tries = 3
     while max_num_tries > 0:
         try:
             print("acessando " + url)
@@ -72,7 +70,7 @@ def get_driver_selenium(url):
             break
         except:
             time.sleep(5*60)
-            max_num_tries -= 1'''
+            max_num_tries -= 1
     return wd
 
 #A partir de um link de hotel, entra na pagina do hotel em questao
@@ -426,11 +424,11 @@ def get_restaurante_review_data(id_, nome, tipo, latitude, longitude, driver, re
         data_avaliacao = parse_date(data_avaliacao)
     except:
         data_avaliacao= 'indef'
-    '''try:
+    try:
         data_visita = ' '.join(review.find('div', class_='prw_rup prw_reviews_stay_date_hsx').text.split()[3:])
         data_visita = parse_date(data_visita)
     except:
-        data_visita = 'indef'''
+        data_visita = 'indef'
     try:
         nota = review.find('span', class_='ui_bubble_rating')['class'][1][-2:]
         nota = nota[0] + '.' + nota[1]
@@ -452,7 +450,7 @@ def get_restaurante_review_data(id_, nome, tipo, latitude, longitude, driver, re
         'estabelecimento_tipo': tipo,
         'usuario': usuario,
         'data_avaliacao': data_avaliacao,
-        #'data_visita': data_visita,
+        'data_visita': data_visita,
         'nota': nota,
         'titulo': titulo,
         'conteudo': conteudo,
@@ -470,15 +468,19 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
     except:
         usuario = 'indef'
     try:
-        data_avaliacao = ' '.join(review.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string.split()[2:])
+        current_url = review_selenium.current_url.split("/")[0]
+        start_from = 1
+        if ".br" in current_url or ".pe" in current_url:
+            start_from = 2
+        data_avaliacao = ' '.join(review.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string.split()[start_from:])
         data_avaliacao = parse_date(data_avaliacao)
     except:
         data_avaliacao = 'indef'
-    '''try:
+    try:
         data_visita = review.find('div', class_='_3JxPDYSx').string.split("•")[0]
         data_visita = parse_date(data_visita)
     except:
-        data_visita = 'indef'''
+        data_visita = 'indef'
     try:
         nota = review.find('svg', class_='zWXXYhVR')['title'].split()[0].replace(",", ".")
     except:
@@ -511,7 +513,7 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
         'estabelecimento_tipo': tipo,
         'usuario': usuario,
         'data_avaliacao': data_avaliacao,
-        #'data_visita': data_visita,
+        'data_visita': data_visita,
         'nota': nota,
         'titulo': titulo,
         'conteudo': conteudo,
