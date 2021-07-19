@@ -22,7 +22,7 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/5
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
 
-LANGUAGES_TO_COLLECT = ['.br', ''] # '' significa para coletar em ingles
+LANGUAGES_TO_COLLECT = ['.pe', ''] # '' significa para coletar em ingles
 REQUEST_DELAY = 30
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
@@ -30,6 +30,7 @@ UPDATE_REVIEWS = False
 TOO_MUCH_REVIEW_PAGES = 50
 NUM_THREADS_FOR_REVIEW = 8
 NUM_THREADS_FOR_PLACE = 3
+HTML_PARSER = "lxml"
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
@@ -43,7 +44,7 @@ def get_soup(url):
             time.sleep(5*60)
             max_num_tries -= 1
 
-    soup = BeautifulSoup(r.text, 'lxml')
+    soup = BeautifulSoup(r.text, HTML_PARSER)
     return soup
 
 def parse_date(date):
@@ -63,7 +64,6 @@ def get_driver_selenium(url):
     max_num_tries = 3
     while max_num_tries > 0:
         try:
-            print("acessando " + url)
             wd = webdriver.Chrome(options=chrome_options)
             wd.get(url)
             time.sleep(REQUEST_DELAY)
@@ -78,8 +78,7 @@ def get_driver_selenium(url):
 def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
     entry_url = trip_url + entry_link
     driver = get_driver_selenium(entry_url)
-    soup = BeautifulSoup(driver.page_source, 'lxml')
-    #soup = get_soup(entry_url)
+    soup = BeautifulSoup(driver.page_source, HTML_PARSER)
 
     cidade = soup.find('a', id='global-nav-tourism').string
     #if not cidade.replace(' ','') == city_name.replace(' ', ''):
@@ -98,7 +97,6 @@ def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
         preco = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CLASS_NAME, "bookableOffer")))
         preco = preco.get_attribute('data-pernight')
-        #preco = soup.find(class_='bookableOffer')['data-pernight']
     except:
         preco = 'indef'
     time.sleep(3)
@@ -182,7 +180,10 @@ def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
 def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, entry_link):
     entry_url = trip_url + entry_link
-    soup = get_soup(entry_url)
+    driver = get_driver_selenium(entry_url)
+    soup = BeautifulSoup(driver.page_source, HTML_PARSER)
+    time.sleep(3)
+    driver.quit()
 
     try:
         cidade = soup.find('a', id='global-nav-tourism').string
@@ -265,7 +266,10 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
 #A partir de um link de atracao, entra na pagina e extrai seus dados
 def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link):
     entry_url = trip_url + entry_link
-    soup = get_soup(entry_url)
+    driver = get_driver_selenium(entry_url)
+    soup = BeautifulSoup(driver.page_source, HTML_PARSER)
+    time.sleep(3)
+    driver.quit()
     
     try:
         cidade = soup.find('a', class_="_1T4t-FiN").string
@@ -341,7 +345,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     return data
 
 def get_hotel_review_data(id_, nome, tipo, latitude, longitude, driver, review_selenium):
-    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
+    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), HTML_PARSER)
     try:
         usuario = review.find('a', class_='ui_header_link _1r_My98y')['href'].split('/')[-1]
     except:
@@ -401,7 +405,7 @@ def get_hotel_review_data(id_, nome, tipo, latitude, longitude, driver, review_s
     return data
 
 def get_restaurante_review_data(id_, nome, tipo, latitude, longitude, driver, review_selenium):
-    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
+    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), HTML_PARSER)
     try:
         usuario = review.find('div', class_='info_text pointer_cursor').div.text
     except:
@@ -411,7 +415,10 @@ def get_restaurante_review_data(id_, nome, tipo, latitude, longitude, driver, re
     except:
         if usuario != 'indef':
             usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
-            usuario_soup = get_soup(usuario_url)
+            driver = get_driver_selenium(usuario_url)
+            usuario_soup = BeautifulSoup(driver.page_source, HTML_PARSER)
+            time.sleep(3)
+            driver.quit()
         else:
             usuario_soup = None
             
@@ -440,8 +447,6 @@ def get_restaurante_review_data(id_, nome, tipo, latitude, longitude, driver, re
         titulo = 'indef'
     try:
         conteudo = '\"' + review_selenium.find_element_by_xpath(".//p[@class='partial_entry']").text.replace('\"','').strip() + '\"'
-
-        #conteudo = '\"' + review.find('p', class_='partial_entry').text.replace('\"', '') + '\"'
     except:
         conteudo = 'indef'
     data = {
@@ -462,17 +467,17 @@ def get_restaurante_review_data(id_, nome, tipo, latitude, longitude, driver, re
     return data
 
 def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review_selenium):
-    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), 'lxml')
+    review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), HTML_PARSER)
     try:
         usuario = review.find('a', class_='_7c6GgQ6n _22upaSQN _37QDe3gr WullykOU _3WoyIIcL')['href'].split('/')[-1]
     except:
         usuario = 'indef'
     try:
-        current_url = review_selenium.current_url.split("/")[0]
-        start_from = 1
-        if ".br" in current_url or ".pe" in current_url:
-            start_from = 2
-        data_avaliacao = ' '.join(review.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string.split()[start_from:])
+        data_text = review.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string
+        start_from = 2
+        if "Written" in data_text:
+            start_from = 1
+        data_avaliacao = " ".join(data_text.split()[start_from:])
         data_avaliacao = parse_date(data_avaliacao)
     except:
         data_avaliacao = 'indef'
@@ -494,8 +499,6 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
         driver.execute_script("arguments[0].click();", read_more)
         div = review_selenium.find_element_by_xpath(".//div[@class='DrjyGw-P _26S7gyB4 _2nPM5Opx']")
         conteudo = '\"' + div.find_element_by_xpath(".//span[@class='_2tsgCuqy']").text.replace('\"','').strip() + '\"'
-        
-        #conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"','') + '\"'
     except:
         try:
             div = review.find("div", class_="DrjyGw-P _26S7gyB4 _2nPM5Opx")
@@ -525,15 +528,12 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
     return data
 
 def get_hotel_review_cards(entry_url):
-    #soup = get_soup(entry_url)
-    #review_cards = soup.findAll('div', class_='_2wrUUKlw _3hFEdNs8')
     driver = get_driver_selenium(entry_url)
     review_cards = driver.find_elements_by_xpath("//div[@class='_2wrUUKlw _3hFEdNs8']")
+
     return review_cards, driver
 
 def get_restaurante_review_cards(entry_url):
-    #soup = get_soup(entry_url)
-    #review_cards = soup.findAll('div', class_='review-container')
     driver = get_driver_selenium(entry_url)
     driver.implicitly_wait(5)
     review_cards = driver.find_elements_by_xpath("//div[@class='review-container']")
@@ -549,8 +549,7 @@ def get_restaurante_review_cards(entry_url):
 def get_atracao_review_cards(entry_url):
     driver = get_driver_selenium(entry_url)
     review_cards = driver.find_elements_by_xpath("//div[@class='_1c8_1ITO']/*")[:-1]
-    #soup = get_soup(entry_url)
-    #review_cards = soup.findAll('div', class_='Dq9MAugU T870kzTX LnVzGwUB')
+
     return review_cards, driver
 
 def coleta_review_por_url(get_review_data, get_review_cards, review_url):
@@ -648,7 +647,7 @@ def get_type_by_name(name, possible_types):
 #Retorna os links dos hoteis presentes numa listagem
 def get_hotel_links(url):
     driver = get_driver_selenium(url)
-    soup = BeautifulSoup(driver.page_source, 'lxml')
+    soup = BeautifulSoup(driver.page_source, HTML_PARSER)
     time.sleep(3)
     driver.quit()
     listing_titles = soup.findAll(class_='listing_title')
@@ -661,7 +660,10 @@ def get_hotel_links(url):
 
 #Retorna os links dos restaurantes presentes numa listagem
 def get_restaurante_links(url):
-    soup = get_soup(url)
+    driver = get_driver_selenium(url)
+    soup = BeautifulSoup(driver.page_source, HTML_PARSER)
+    time.sleep(3)
+    driver.quit()
     restaurant_items = soup.findAll(class_='_1llCuDZj')
     restaurant_links = []
     for restaurant in restaurant_items:
@@ -675,8 +677,6 @@ def get_atracao_links(url):
     driver = get_driver_selenium(url)
     #Espera carregar
     driver.implicitly_wait(60)
-    #WebDriverWait(driver, 60).until(
-    #EC.presence_of_element_located((By.CLASS_NAME, "_1oY56Xsv")))
 
     atracoes_items = driver.find_elements_by_xpath("//div[@class='_3JZh_6Iu']")
     atracoes_links = []
@@ -745,7 +745,10 @@ def write_to_file(filename, data):
 
 #Retorna o numero de paginas total
 def get_max_num_pages(url, page_type):
-    soup = get_soup(url)
+    driver = get_driver_selenium(url)
+    soup = BeautifulSoup(driver.page_source, HTML_PARSER)
+    time.sleep(3)
+    driver.quit()
     if 'restaurante-review' == page_type:
         choices = soup.find("div", class_="choices")
         num_reviews_list = choices.findAll("span", class_="row_num is-shown-at-tablet")
@@ -778,7 +781,10 @@ def get_max_num_pages(url, page_type):
         url_to_offset.insert(pos_to_insert, offset_package)
         last_page_url = '-'.join(url_to_offset)
 
-        last_page_soup = get_soup(last_page_url)
+        driver = get_driver_selenium(last_page_url)
+        last_page_soup = BeautifulSoup(driver.page_source, HTML_PARSER)
+        time.sleep(3)
+        driver.quit()
         num_pages = int(last_page_soup.findAll('a', class_="pageNum")[-1].string.replace('.','').replace(",", ""))
 
     else:
@@ -829,7 +835,10 @@ def coleta_atracoes(cidade, url, comentarios_flag):
     print('\n{} atracoes coletadas\n'.format(len(atracoes)))
 
 def get_links_from_city(city_url):
-    soup = get_soup(city_url)
+    driver = get_driver_selenium(city_url)
+    soup = BeautifulSoup(driver.page_source, HTML_PARSER)
+    time.sleep(3)
+    driver.quit()
     links = soup.findAll('a', {'class': '_2HtGEjYV _22upaSQN'})
     hotel_url = 'https://www.tripadvisor.com.br'+ links[0]['href']
     restaurante_url = 'https://www.tripadvisor.com.br' + links[3]['href']
@@ -899,7 +908,11 @@ def extrai_datas(review_cards, tipo):
     elif tipo == 'atracao-review':
         for card in review_cards:
             try:
-                data_avaliacao = ' '.join(card.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string.split()[2:])
+                data_text = card.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string
+                start_from = 2
+                if "Written" in data_text:
+                    start_from = 1
+                data_avaliacao = " ".join(data_text.split()[start_from:])
                 data_avaliacao = parse_date(data_avaliacao)
             except:
                 data_avaliacao = 'indef'
@@ -915,7 +928,10 @@ def binary_search(review_urls, tipo, low, high, index):
         # Carrega os reviews da pagina no meio do vetor
         mid = (high + low) // 2
         mid_url = review_urls[mid]
-        soup = get_soup(mid_url)
+        driver = get_driver_selenium(mid_url)
+        soup = BeautifulSoup(driver.page_source, HTML_PARSER)
+        time.sleep(3)
+        driver.quit()
         
         # Extrai as datas dos reviews da pagina
         if tipo == 'atracao-review':
