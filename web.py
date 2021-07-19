@@ -22,7 +22,7 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/5
 language = '.br'
 trip_url = 'https://www.tripadvisor.com' + language
 
-LANGUAGES_TO_COLLECT = ['.br', ''] # '' significa para coletar em ingles
+LANGUAGES_TO_COLLECT = ['.pe', ''] # '' significa para coletar em ingles
 REQUEST_DELAY = 30
 COLLECT_UNTIL = 2015
 ONLY_REVIEWS = False
@@ -63,7 +63,6 @@ def get_driver_selenium(url):
     max_num_tries = 3
     while max_num_tries > 0:
         try:
-            print("acessando " + url)
             wd = webdriver.Chrome(options=chrome_options)
             wd.get(url)
             time.sleep(REQUEST_DELAY)
@@ -468,11 +467,11 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
     except:
         usuario = 'indef'
     try:
-        current_url = review_selenium.current_url.split("/")[0]
-        start_from = 1
-        if ".br" in current_url or ".pe" in current_url:
-            start_from = 2
-        data_avaliacao = ' '.join(review.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string.split()[start_from:])
+        data_text = review.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string
+        start_from = 2
+        if "Written" in data_text:
+            start_from = 1
+        data_avaliacao = " ".join(data_text.split()[start_from:])
         data_avaliacao = parse_date(data_avaliacao)
     except:
         data_avaliacao = 'indef'
@@ -899,7 +898,11 @@ def extrai_datas(review_cards, tipo):
     elif tipo == 'atracao-review':
         for card in review_cards:
             try:
-                data_avaliacao = ' '.join(card.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string.split()[2:])
+                data_text = card.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string
+                start_from = 2
+                if "Written" in data_text:
+                    start_from = 1
+                data_avaliacao = " ".join(data_text.split()[start_from:])
                 data_avaliacao = parse_date(data_avaliacao)
             except:
                 data_avaliacao = 'indef'
