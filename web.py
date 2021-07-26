@@ -30,7 +30,7 @@ UPDATE_REVIEWS = False
 TOO_MUCH_REVIEW_PAGES = 50
 NUM_THREADS_FOR_REVIEW = 8
 NUM_THREADS_FOR_PLACE = 3
-HTML_PARSER = "lxml"
+HTML_PARSER = "html.parser"
 
 def get_soup(url):
     time.sleep(REQUEST_DELAY)
@@ -38,7 +38,7 @@ def get_soup(url):
     max_num_tries = 3
     while max_num_tries > 0:
         try:
-            r = requests.get(url, headers=headers)
+            r = requests.get(url, headers={'User-Agent':'Python'})
             break
         except:
             time.sleep(5*60)
@@ -180,10 +180,11 @@ def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
 def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, entry_link):
     entry_url = trip_url + entry_link
-    driver = get_driver_selenium(entry_url)
+    '''driver = get_driver_selenium(entry_url)
     soup = BeautifulSoup(driver.page_source, HTML_PARSER)
     time.sleep(3)
-    driver.quit()
+    driver.quit()'''
+    soup = get_soup(entry_url)
 
     try:
         cidade = soup.find('a', id='global-nav-tourism').string
@@ -266,10 +267,11 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
 #A partir de um link de atracao, entra na pagina e extrai seus dados
 def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link):
     entry_url = trip_url + entry_link
-    driver = get_driver_selenium(entry_url)
+    '''driver = get_driver_selenium(entry_url)
     soup = BeautifulSoup(driver.page_source, HTML_PARSER)
     time.sleep(3)
-    driver.quit()
+    driver.quit()'''
+    soup = get_soup(entry_url)
     
     try:
         cidade = soup.find('a', class_="_1T4t-FiN").string
@@ -278,8 +280,8 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
             cidade = soup.find("a", id="global-nav-tourism").string
         except:
             cidade = 'indef'
-    if not cidade.replace(' ','') == city_name.replace(' ', ''):
-        return {}
+    #if not cidade.replace(' ','') == city_name.replace(' ', ''):
+    #    return {}
 
     atracao_id = entry_link.split('-')[2][1:]
     if atracoes_coletadas is not None and not UPDATE_REVIEWS:
@@ -312,7 +314,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         # So precisa acessar json se for pra escrever a atracao
         if not ONLY_REVIEWS:
             api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/attraction/{}'.format(atracao_id)
-            api_json = requests.get(api_url).json()
+            api_json = requests.get(api_url, headers={"User-Agent": "Python"}).json()
         else:
             api_json = {}
         coords = api_json['geoPoint']
@@ -326,6 +328,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         if UPDATE_REVIEWS:
             comentarios = atualiza_reviews(city_name, nome, atracao_id, 'atracao-review', entry_link, get_atracao_review_data, get_atracao_review_cards)
         else:
+            print("coletando " + nome)
             comentarios = coleta_reviews(nome, atracao_id, 'atracao-review', entry_link, lat, lon, get_atracao_review_data, get_atracao_review_cards)
         write_to_file(os.path.join(city_name,'avaliacoes-atracoes.csv'), comentarios)
     data = {
@@ -415,10 +418,11 @@ def get_restaurante_review_data(id_, nome, tipo, latitude, longitude, driver, re
     except:
         if usuario != 'indef':
             usuario_url = 'https://www.tripadvisor.com.br/Profile/' + usuario
-            driver = get_driver_selenium(usuario_url)
+            '''driver = get_driver_selenium(usuario_url)
             usuario_soup = BeautifulSoup(driver.page_source, HTML_PARSER)
             time.sleep(3)
-            driver.quit()
+            driver.quit()'''
+            usuario_soup = get_soup(usuario_url)
         else:
             usuario_soup = None
             
@@ -646,10 +650,11 @@ def get_type_by_name(name, possible_types):
 
 #Retorna os links dos hoteis presentes numa listagem
 def get_hotel_links(url):
-    driver = get_driver_selenium(url)
+    '''driver = get_driver_selenium(url)
     soup = BeautifulSoup(driver.page_source, HTML_PARSER)
     time.sleep(3)
-    driver.quit()
+    driver.quit()'''
+    soup = get_soup(url)
     listing_titles = soup.findAll(class_='listing_title')
     titles_links = []
     for entry in listing_titles:
@@ -660,10 +665,11 @@ def get_hotel_links(url):
 
 #Retorna os links dos restaurantes presentes numa listagem
 def get_restaurante_links(url):
-    driver = get_driver_selenium(url)
+    '''driver = get_driver_selenium(url)
     soup = BeautifulSoup(driver.page_source, HTML_PARSER)
     time.sleep(3)
-    driver.quit()
+    driver.quit()'''
+    soup = get_soup(url)
     restaurant_items = soup.findAll(class_='_1llCuDZj')
     restaurant_links = []
     for restaurant in restaurant_items:
@@ -745,10 +751,11 @@ def write_to_file(filename, data):
 
 #Retorna o numero de paginas total
 def get_max_num_pages(url, page_type):
-    driver = get_driver_selenium(url)
+    '''driver = get_driver_selenium(url)
     soup = BeautifulSoup(driver.page_source, HTML_PARSER)
     time.sleep(3)
-    driver.quit()
+    driver.quit()'''
+    soup = get_soup(url)
     if 'restaurante-review' == page_type:
         choices = soup.find("div", class_="choices")
         num_reviews_list = choices.findAll("span", class_="row_num is-shown-at-tablet")
@@ -781,10 +788,11 @@ def get_max_num_pages(url, page_type):
         url_to_offset.insert(pos_to_insert, offset_package)
         last_page_url = '-'.join(url_to_offset)
 
-        driver = get_driver_selenium(last_page_url)
+        '''driver = get_driver_selenium(last_page_url)
         last_page_soup = BeautifulSoup(driver.page_source, HTML_PARSER)
         time.sleep(3)
-        driver.quit()
+        driver.quit()'''
+        last_page_soup = get_soup(last_page_url)
         num_pages = int(last_page_soup.findAll('a', class_="pageNum")[-1].string.replace('.','').replace(",", ""))
 
     else:
@@ -835,14 +843,13 @@ def coleta_atracoes(cidade, url, comentarios_flag):
     print('\n{} atracoes coletadas\n'.format(len(atracoes)))
 
 def get_links_from_city(city_url):
-    driver = get_driver_selenium(city_url)
-    soup = BeautifulSoup(driver.page_source, HTML_PARSER)
-    time.sleep(3)
-    driver.quit()
-    links = soup.findAll('a', {'class': '_2HtGEjYV _22upaSQN'})
-    hotel_url = 'https://www.tripadvisor.com.br'+ links[0]['href']
-    restaurante_url = 'https://www.tripadvisor.com.br' + links[3]['href']
-    atracao_url = 'https://www.tripadvisor.com.br' + links[2]['href']
+    city_url_splitted = city_url.split("/")[-1].split("-")
+    city_url_splitted[0] = "Hotels"
+    hotel_url = 'https://www.tripadvisor.com.br/' + "-".join(city_url_splitted)
+    city_url_splitted[0] = "Restaurants"
+    restaurante_url = 'https://www.tripadvisor.com.br/' + "-".join(city_url_splitted)
+    city_url_splitted[0] = "Attractions"
+    atracao_url = 'https://www.tripadvisor.com.br/' + "-".join(city_url_splitted)
     atracao_url = atracao_url.split('-')
     atracao_url.insert(3, 'a_allAttractions.true')
     atracao_url = '-'.join(atracao_url)
@@ -928,10 +935,11 @@ def binary_search(review_urls, tipo, low, high, index):
         # Carrega os reviews da pagina no meio do vetor
         mid = (high + low) // 2
         mid_url = review_urls[mid]
-        driver = get_driver_selenium(mid_url)
+        '''driver = get_driver_selenium(mid_url)
         soup = BeautifulSoup(driver.page_source, HTML_PARSER)
         time.sleep(3)
-        driver.quit()
+        driver.quit()'''
+        soup = get_soup(mid_url)
         
         # Extrai as datas dos reviews da pagina
         if tipo == 'atracao-review':
@@ -993,7 +1001,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-            'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
+            'Cusco': 'https://www.tripadvisor.com.br/Tourism-g294314-Cusco_Cusco_Region-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
