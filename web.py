@@ -770,11 +770,11 @@ def get_max_num_pages(url, page_type):
         driver.quit()
     elif "atracao" == page_type:
         text = soup.find("div", class_="_1NyglzPL").text
-        total_entries = [int(word.replace(".", "").replace(",", "")) for word in text.split() if word.replace(".", "").replace(",", "").isdigit()][0]
+        total_entries = [int(word.replace(".", "").replace(",", "")) for word in text.split() if word.replace(".", "").replace(",", "").isdigit()][-1]
         num_pages = math.ceil(total_entries/30)
     elif "atracao-review" == page_type:
         text = soup.find("div", class_="_1NyglzPL").text
-        total_entries = [int(word.replace(".", "").replace(",", "")) for word in text.split() if word.replace(".", "").replace(",", "").isdigit()][0]
+        total_entries = [int(word.replace(".", "").replace(",", "")) for word in text.split() if word.replace(".", "").replace(",", "").isdigit()][-1]
         num_pages = math.ceil(total_entries/10)
     elif "hotel" == page_type:
         total_entries = int(soup.find("span", class_="_3nOjB60a").string.split()[0].replace(".","").replace(",", ""))
@@ -1001,7 +1001,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-            'Cusco': 'https://www.tripadvisor.com.br/Tourism-g294314-Cusco_Cusco_Region-Vacations.html'
+            'Ilhas Galápagos': 'https://www.tripadvisor.com.br/Tourism-g294310-Galapagos_Islands-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
