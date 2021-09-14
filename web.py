@@ -207,22 +207,22 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
     except:
         nome = 'indef'
     try:
-        endereco = '\"' + soup.find('a', {'class' : '_15QfMZ2L', 'href': '#MAPVIEW'}).string.strip() + '\"'
+        endereco = '\"' + soup.find('a', {'class' : 'fhGHT', 'href': '#MAPVIEW'}).string.strip() + '\"'
     except:
         endereco = 'indef'
     try:
-        avaliacoes = soup.find('a', class_='_10Iv7dOs').string.split()[0].replace('.','')
+        avaliacoes = soup.find('a', class_='dUfZJ').string.split()[0].replace('.','')
     except:
         avaliacoes = '0'
     try:
-        nota = soup.find('span', class_='r2Cf69qf').text.strip().replace(',','.')
+        nota = soup.find('span', class_='fdsdx').text.strip().replace(',','.')
     except:
         nota = 'indef'
     try:
         # So precisa acessar json se for pra escrever o restaurante
         if not ONLY_REVIEWS:
             api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/restaurant/{}'.format(restaurant_id)
-            api_json = requests.get(api_url).json()
+            api_json = requests.get(api_url, headers={'User-Agent':'Python'}).json()
         else:
             api_json = {}
         coords = api_json['geoPoint']
@@ -232,7 +232,7 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
         lat = 'indef'
         lon = 'indef'
     try:
-        categoria_preco = soup.find('span', class_='_13OzAOXO _34GKdBMV').find(string = lambda s: '$' in s)
+        categoria_preco = soup.find('a', class_='drUyy').string
         if categoria_preco is None:
             categoria_preco = 'indef'
     except:
@@ -277,7 +277,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     soup = get_soup(entry_url)
     
     try:
-        cidade = soup.find('a', class_="_1T4t-FiN").string
+        cidade = soup.find('a', class_="cPIii c _S").string
     except:
         try:
             cidade = soup.find("a", id="global-nav-tourism").string
@@ -291,14 +291,14 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         if int(atracao_id) in atracoes_coletadas['atracao_id'].values:
             return {}
     try:
-        nome = "\"" + soup.find('h1', class_='DrjyGw-P _1SRa-qNz qf3QTY0F').string.strip().replace('\"','') + "\""
+        nome = "\"" + soup.find('h1', class_='WlYyy cPsXC GeSzT').string.strip().replace('\"','') + "\""
     except:
         try:
             nome = "\"" + soup.find("h1", id="HEADING").string.replace('\"','') + "\""
         except:
             nome = 'indef'
     try:
-        endereco = '\"' + soup.find("button", class_="LgQbZEQC _22upaSQN _1v-QphLm _1fKqJFvt").find('span', class_='DrjyGw-P _1l3JzGX1').string + '\"'
+        endereco = '\"' + soup.find("button", class_="bfQwA _G B- _S _T c G_ P0 ddFHE cnvzr bTBvn").find('span', class_='WlYyy cacGK Wb').string + '\"'
     except:
         endereco = 'indef'
     try:
@@ -306,11 +306,10 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     except:
         avaliacoes = '0'
     try:
-        nota = soup.find('div', class_='DrjyGw-P _1SRa-qNz _3t0zrF_f _1QGef_ZJ').string
+        nota = soup.find('div', class_='WlYyy cPsXC fksET cMKSg').string
     except:
         try:
-            nota = soup.find("span", class_="ui_bubble_rating")['class'][1].split("_")[1]
-            nota = nota[0] + "." + nota[1]
+            nota = soup.find("svg", class_="RWYkj d H0")['title'].split()[0].replace(",",".")
         except:
             nota = 'indef'
     try:
@@ -476,11 +475,11 @@ def get_restaurante_review_data(id_, nome, tipo, latitude, longitude, driver, re
 def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review_selenium):
     review = BeautifulSoup(review_selenium.get_attribute('innerHTML'), HTML_PARSER)
     try:
-        usuario = review.find('a', class_='_7c6GgQ6n _22upaSQN _37QDe3gr WullykOU _3WoyIIcL')['href'].split('/')[-1]
+        usuario = review.find('a', class_='iPqaD _F G- ddFHE eKwUx btBEK fUpii')['href'].split('/')[-1]
     except:
         usuario = 'indef'
     try:
-        data_text = review.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string
+        data_text = review.find('div', class_='WlYyy diXIH cspKb bQCoY').string
         start_from = 2
         if "Written" in data_text:
             start_from = 1
@@ -489,23 +488,23 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
     except:
         data_avaliacao = 'indef'
     try:
-        data_visita = review.find('div', class_='_3JxPDYSx').string.split("•")[0]
+        data_visita = review.find('div', class_='fEDvV').string.split("•")[0]
         data_visita = parse_date(data_visita)
     except:
         data_visita = 'indef'
     try:
-        nota = review.find('svg', class_='zWXXYhVR')['title'].split()[0].replace(",", ".")
+        nota = review.find('svg', class_='RWYkj d H0')['title'].split()[0].replace(",", ".")
     except:
         nota = 'indef'
     try:
-        titulo = '\"' + review.find("span", class_='_2tsgCuqy').string.replace('\"','') + '\"'
+        titulo = '\"' + review.find("span", class_='NejBf').string.replace('\"','') + '\"'
     except:
         titulo = 'indef'
     try:
-        read_more = review_selenium.find_element_by_xpath(".//button[@class='LgQbZEQC _22upaSQN _1v-QphLm']")
+        read_more = review_selenium.find_element_by_xpath(".//button[@class='bfQwA _G B- _S _T c G_ P0 ddFHE cnvzr']")
         driver.execute_script("arguments[0].click();", read_more)
-        div = review_selenium.find_element_by_xpath(".//div[@class='DrjyGw-P _26S7gyB4 _2nPM5Opx']")
-        conteudo = '\"' + div.find_element_by_xpath(".//span[@class='_2tsgCuqy']").text.replace('\"','').strip() + '\"'
+        div = review_selenium.find_element_by_xpath(".//div[@class='WlYyy diXIH dDKKM']")
+        conteudo = '\"' + div.find_element_by_xpath(".//span[@class='NejBf']").text.replace('\"','').strip() + '\"'
     except:
         try:
             div = review.find("div", class_="DrjyGw-P _26S7gyB4 _2nPM5Opx")
@@ -513,7 +512,7 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
         except:
             conteudo = "indef"
     try:
-        origem = '\"' + review.find('div', class_='DrjyGw-P _26S7gyB4 NGv7A1lw _2yS548m8 _2cnjB3re _1TAWSgm1 _1Z1zA2gh _2-K8UW3T _1dimhEoy').find("span").text + '\"'
+        origem = '\"' + review.find('div', class_='WlYyy diXIH bQCoY').find("span").text + '\"'
     except:
         origem = 'indef'
 
@@ -555,7 +554,7 @@ def get_restaurante_review_cards(entry_url):
 
 def get_atracao_review_cards(entry_url):
     driver = get_driver_selenium(entry_url)
-    review_cards = driver.find_elements_by_xpath("//div[@class='_1c8_1ITO']/*")[:-1]
+    review_cards = driver.find_elements_by_xpath("//div[@class='bPhtn']/*")[:-1]
 
     return review_cards, driver
 
@@ -673,7 +672,7 @@ def get_restaurante_links(url):
     time.sleep(3)
     driver.quit()'''
     soup = get_soup(url)
-    restaurant_items = soup.findAll(class_='_1llCuDZj')
+    restaurant_items = soup.findAll(class_='OhCyu')
     restaurant_links = []
     for restaurant in restaurant_items:
         restaurant_link = restaurant.find('a')['href']
@@ -687,7 +686,7 @@ def get_atracao_links(url):
     #Espera carregar
     driver.implicitly_wait(60)
 
-    atracoes_items = driver.find_elements_by_xpath("//div[@class='_3JZh_6Iu']")
+    atracoes_items = driver.find_elements_by_xpath("//div[@class='eXwvx']")
     atracoes_links = []
     for atracao in atracoes_items:
         atracao_link = '/' + atracao.find_element_by_tag_name('a').get_attribute('href').split('/')[-1]
@@ -767,16 +766,15 @@ def get_max_num_pages(url, page_type):
     elif "restaurante" == page_type:
         driver = get_driver_selenium(url)
         driver.implicitly_wait(30)
-        total_entries = int(driver.find_element_by_xpath("//span[@class='_1D_QUaKi']").text.replace(".", ""))
+        total_entries = int(driver.find_element_by_xpath("//span[@class='ffdhf b']").text.replace(".", "").replace(",", ""))
         num_pages = math.ceil(total_entries/30)
         time.sleep(3)
         driver.quit()
     elif "atracao" == page_type:
-        text = soup.find("div", class_="_1NyglzPL").text
-        total_entries = [int(word.replace(".", "").replace(",", "")) for word in text.split() if word.replace(".", "").replace(",", "").isdigit()][-1]
+        total_entries = int(soup.find("span", class_="WlYyy diXIH cCzei fPixj").text.split()[0].replace(".","").replace(",",""))
         num_pages = math.ceil(total_entries/30)
     elif "atracao-review" == page_type:
-        text = soup.find("div", class_="_1NyglzPL").text
+        text = soup.find("div", class_="cIUfa").text
         total_entries = [int(word.replace(".", "").replace(",", "")) for word in text.split() if word.replace(".", "").replace(",", "").isdigit()][-1]
         num_pages = math.ceil(total_entries/10)
     elif "hotel" == page_type:
@@ -918,7 +916,7 @@ def extrai_datas(review_cards, tipo):
     elif tipo == 'atracao-review':
         for card in review_cards:
             try:
-                data_text = card.find('div', class_='DrjyGw-P _26S7gyB4 _1z-B2F-n _1dimhEoy').string
+                data_text = card.find('div', class_='WlYyy diXIH cspKb bQCoY').string
                 start_from = 2
                 if "Written" in data_text:
                     start_from = 1
@@ -946,7 +944,7 @@ def binary_search(review_urls, tipo, low, high, index):
         
         # Extrai as datas dos reviews da pagina
         if tipo == 'atracao-review':
-            big_div = soup.find('div', class_='_1c8_1ITO')
+            big_div = soup.find('div', class_='bPhtn')
             review_cards = big_div.findAll("div", recursive=False)[:-1]
 
         elif tipo == 'hotel-review':
@@ -1004,11 +1002,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-<<<<<<< HEAD
             'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
-=======
-            'Ilhas Galápagos': 'https://www.tripadvisor.com.br/Tourism-g294310-Galapagos_Islands-Vacations.html'
->>>>>>> 1e908c6df67206c53c18087869b346a0b738f2ea
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
