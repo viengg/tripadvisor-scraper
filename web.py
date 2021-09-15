@@ -302,7 +302,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
     except:
         endereco = 'indef'
     try:
-        avaliacoes = soup.find('a', href='#REVIEWS').string.split()[0].replace('.','')
+        avaliacoes = soup.find('span', class_='cfIVb').string.replace('.','')
     except:
         avaliacoes = '0'
     try:
@@ -686,7 +686,8 @@ def get_atracao_links(url):
     #Espera carregar
     driver.implicitly_wait(60)
 
-    atracoes_items = driver.find_elements_by_xpath("//div[@class='eXwvx']")
+    atracoes_items = driver.find_elements_by_xpath("//div[@class='MGdFu P0']")
+    print(len(atracoes_items))
     atracoes_links = []
     for atracao in atracoes_items:
         atracao_link = '/' + atracao.find_element_by_tag_name('a').get_attribute('href').split('/')[-1]
