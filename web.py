@@ -1003,7 +1003,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-            'Ouro Preto': 'https://www.tripadvisor.com.br/Tourism-g303389-Ouro_Preto_State_of_Minas_Gerais-Vacations.html'
+            'Tiradentes': 'https://www.tripadvisor.com.br/Tourism-g737098-Tiradentes_State_of_Minas_Gerais-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
