@@ -779,7 +779,8 @@ def get_max_num_pages(url, page_type):
         total_entries = [int(word.replace(".", "").replace(",", "")) for word in text.split() if word.replace(".", "").replace(",", "").isdigit()][-1]
         num_pages = math.ceil(total_entries/10)
     elif "hotel" == page_type:
-        total_entries = int(soup.find("span", class_="eMoHQ").string.split()[0].replace(".","").replace(",", ""))
+        text = soup.find("span", class_="eMoHQ").text
+        total_entries = [int(word.replace(".", "").replace(",", "")) for word in text.split() if word.replace(".", "").replace(",", "").isdigit()][-1]
         num_pages = math.ceil(total_entries/30)
     elif "hotel-review" == page_type:
         total_entries = int(soup.find("span", class_='HFUqL').string.split()[0].replace('.','').replace(",", ""))
@@ -1003,7 +1004,7 @@ def marca_data_coleta(cidade, tipo):
 if __name__ == "__main__":
     start_time = time.time()
     cidades = {
-            'Tiradentes': 'https://www.tripadvisor.com.br/Tourism-g737098-Tiradentes_State_of_Minas_Gerais-Vacations.html'
+            'Diamantina': 'https://www.tripadvisor.com.br/Tourism-g303380-Diamantina_State_of_Minas_Gerais-Vacations.html'
     }
     nome_cidades = cidades.keys()
     make_dirs(nome_cidades)
