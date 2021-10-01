@@ -25,7 +25,6 @@ trip_url = 'https://www.tripadvisor.com' + language
 LANGUAGES_TO_COLLECT = ['.br', ''] # '' significa para coletar em ingles
 REQUEST_DELAY = 30
 COLLECT_UNTIL = 2015
-ONLY_REVIEWS = False
 UPDATE_REVIEWS = False
 TOO_MUCH_REVIEW_PAGES = 50
 NUM_THREADS_FOR_REVIEW = 8
@@ -81,6 +80,8 @@ def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
     soup = BeautifulSoup(driver.page_source, HTML_PARSER)
 
     cidade = soup.find('a', id='global-nav-tourism').string
+
+    #Ignora os hotéis que não estão na cidade a ser coletada
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
         return {}
     
@@ -138,12 +139,8 @@ def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
     tipo = get_type_by_name(nome, ['Hotel', 'Pousada', 'Hostel', 'Chale'])
 
     try:
-        # So precisa acessar json se for pra escrever os hoteis
-        if not ONLY_REVIEWS:
-            api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/hotel/{}?rn=1&rc=Hotel_Review&guestInfo=1_2&placementName=Hotel_Review_MapDetail_Anchor&currency=BRL'.format(hotel_id)
-            api_json = requests.get(api_url, headers={'User-Agent':'Python'}).json()
-        else:
-            api_json = {}
+        api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/hotel/{}?rn=1&rc=Hotel_Review&guestInfo=1_2&placementName=Hotel_Review_MapDetail_Anchor&currency=BRL'.format(hotel_id)
+        api_json = requests.get(api_url, headers={'User-Agent':'Python'}).json()
         coords = api_json['hotels'][0]['location']['geoPoint']
         lat = str(coords['latitude'])
         lon = str(coords['longitude'])
@@ -176,8 +173,7 @@ def get_hotel_data(city_name, comentarios_flag, hoteis_coletados, entry_link):
         'fonte': entry_url,
     }
     print(nome + ' preco:' + preco)
-    if not ONLY_REVIEWS:
-        write_to_file(os.path.join(city_name,'hoteis.csv'), [data])
+    write_to_file(os.path.join(city_name,'hoteis.csv'), [data])
     return data 
 
 #A partir de um link de restaurante, entra na pagina e extrai os seus dados
@@ -193,6 +189,8 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
         cidade = soup.find('a', id='global-nav-tourism').string
     except:
         cidade = 'indef'
+
+    #Ignora os restaurantes que nao estao na cidade a ser coletada
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
         return {}
 
@@ -219,12 +217,8 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
     except:
         nota = 'indef'
     try:
-        # So precisa acessar json se for pra escrever o restaurante
-        if not ONLY_REVIEWS:
-            api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/restaurant/{}'.format(restaurant_id)
-            api_json = requests.get(api_url, headers={'User-Agent':'Python'}).json()
-        else:
-            api_json = {}
+        api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/restaurant/{}'.format(restaurant_id)
+        api_json = requests.get(api_url, headers={'User-Agent':'Python'}).json()
         coords = api_json['geoPoint']
         lat = str(coords['latitude'])
         lon = str(coords['longitude'])
@@ -263,8 +257,7 @@ def get_restaurante_data(city_name, comentarios_flag, restaurantes_coletados, en
         'fonte': entry_url,
     }
     print(nome + ' coletado')
-    if not ONLY_REVIEWS:
-        write_to_file(os.path.join(city_name,'restaurantes.csv'), [data])
+    write_to_file(os.path.join(city_name,'restaurantes.csv'), [data])
     return data
 
 #A partir de um link de atracao, entra na pagina e extrai seus dados
@@ -283,6 +276,8 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
             cidade = soup.find("a", id="global-nav-tourism").string
         except:
             cidade = 'indef'
+    
+    #Ignora as atracoes que nao estao na cidade a ser coletada
     if not cidade.replace(' ','') == city_name.replace(' ', ''):
         return {}
 
@@ -313,12 +308,8 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         except:
             nota = 'indef'
     try:
-        # So precisa acessar json se for pra escrever a atracao
-        if not ONLY_REVIEWS:
-            api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/attraction/{}'.format(atracao_id)
-            api_json = requests.get(api_url, headers={"User-Agent": "Python"}).json()
-        else:
-            api_json = {}
+        api_url = 'https://www.tripadvisor.com.br/data/1.0/mapsEnrichment/attraction/{}'.format(atracao_id)
+        api_json = requests.get(api_url, headers={"User-Agent": "Python"}).json()
         coords = api_json['geoPoint']
         lat = str(coords['latitude'])
         lon = str(coords['longitude'])
@@ -345,8 +336,7 @@ def get_atracao_data(city_name, comentarios_flag, atracoes_coletadas, entry_link
         'fonte': entry_url,
     }
     print(nome + ' coletado')
-    if not ONLY_REVIEWS:
-        write_to_file(os.path.join(city_name,'atracoes.csv'), [data])
+    write_to_file(os.path.join(city_name,'atracoes.csv'), [data])
     return data
 
 def get_hotel_review_data(id_, nome, tipo, latitude, longitude, driver, review_selenium):
@@ -379,7 +369,6 @@ def get_hotel_review_data(id_, nome, tipo, latitude, longitude, driver, review_s
         read_more = review_selenium.find_element_by_xpath(".//span[@class='eljVo _S Z']")
         driver.execute_script("arguments[0].click();", read_more)
         conteudo = '\"' + review_selenium.find_element_by_xpath(".//q[@class='XllAv H4 _a']").text.replace('\"','').strip() + '\"'
-        #conteudo = '\"' + review.find('q', class_='IRsGHoPm').text.replace('\"', "") + '\"'
     except:
         conteudo = 'indef'
     try:
@@ -533,6 +522,7 @@ def get_atracao_review_data(id_, nome, tipo, latitude, longitude, driver, review
     print(data)
     return data
 
+#Coleta os cards dos reviews de hoteis, restaurantes e atracoes
 def get_hotel_review_cards(entry_url):
     driver = get_driver_selenium(entry_url)
     review_cards = driver.find_elements_by_xpath("//div[@class='cWwQK MC R2 Gi z Z BB dXjiy']")
@@ -558,6 +548,7 @@ def get_atracao_review_cards(entry_url):
 
     return review_cards, driver
 
+#Para uma URL, coleta todos os reviews dela
 def coleta_review_por_url(get_review_data, get_review_cards, review_url):
     review_cards, driver = get_review_cards(review_url)
     if driver is not None:
@@ -573,9 +564,12 @@ def coleta_review_por_url(get_review_data, get_review_cards, review_url):
         driver.quit()
     return data
 
+#Coleta os reviews de um estabelecimento
 def coleta_reviews(nome, id_, tipo_review, entry_link, lat, lon, get_review_data, get_review_cards):
     review_urls = get_reviews_page_urls(entry_link, tipo_review)
     collected_reviews = []
+
+    #review_urls eh uma lista de listas, e cada entrada diz respeito as urls de uma linguagem
     for review_urls_by_language in review_urls:
         # Muitas paginas -> vale a pena filtrar
         if len(review_urls_by_language) >= TOO_MUCH_REVIEW_PAGES:
@@ -591,6 +585,7 @@ def coleta_reviews(nome, id_, tipo_review, entry_link, lat, lon, get_review_data
 
     return collected_reviews
 
+#Ao inves de coletar todos os reviews, atualiza considerando a data da ultima coleta
 def atualiza_reviews(cidade, nome, id_, tipo_review, entry_link, get_review_data, get_review_cards):
     review_urls = get_reviews_page_urls(entry_link, tipo_review)
     last_scrape_date = get_last_scrape_date(cidade, tipo_review)
@@ -697,7 +692,7 @@ def get_atracao_links(url):
     driver.quit()
     return atracoes_links
 
-#Gera, a partir de uma URl inicial, as URLS correspondentes ao avançar uma pagina
+#Gera, a partir de uma URl inicial, as URLS correspondentes ao avançar todas as paginas
 def get_page_urls(initial_url, page_type):
     urls=[initial_url]
     try:
@@ -732,6 +727,7 @@ def get_page_urls(initial_url, page_type):
 
     return urls
 
+#Gera uma lista de listas, onde cada entrada sao as URLs de todos os reviews em uma linguagem
 def get_reviews_page_urls(entry_link, page_type):
     urls = []
     for LANGUAGE in LANGUAGES_TO_COLLECT:
@@ -802,7 +798,7 @@ def get_max_num_pages(url, page_type):
         num_pages = soup.findAll('a', class_="pageNum")[-1].string
     return num_pages
 
-#Coleta dados de hoteis/restaurantes/atracoes (lista de listas)
+#Coleta dados de hoteis/restaurantes/atracoes
 def coleta_dados(cidade, initial_url, data_extractor, get_links, page_type, comentarios_flag, instancias_coletadas):
     page_urls = get_page_urls(initial_url, page_type)
     data_extractor = partial(data_extractor, cidade, comentarios_flag, instancias_coletadas)
@@ -845,6 +841,7 @@ def coleta_atracoes(cidade, url, comentarios_flag):
     atracoes = coleta_dados(cidade, url, get_atracao_data, get_atracao_links, 'atracao', comentarios_flag, atracoes_coletadas)
     print('\n{} atracoes coletadas\n'.format(len(atracoes)))
 
+#Pega os links correspondentes a pagina de hoteis, restaurantes e atracoes de uma cidade
 def get_links_from_city(city_url):
     city_url_splitted = city_url.split("/")[-1].split("-")
     city_url_splitted[0] = "Hotels"
@@ -875,24 +872,23 @@ def coleta_cidades(cidades, mode):
     for nome_cidade, url in cidades.items():
         coleta_por_cidade(nome_cidade, url, mode)
 
+# Limpa os arquivos de acordo com o modo de coleta
 def clear_files(nome_cidades, mode):
     for cidade in nome_cidades:
         if '1' in mode:
-            if not ONLY_REVIEWS:
-                open(os.path.join(cidade,'hoteis.csv'), 'w').close()
+            open(os.path.join(cidade,'hoteis.csv'), 'w').close()
             if 's' in mode and not UPDATE_REVIEWS:
                 open(os.path.join(cidade,'avaliacoes-hoteis.csv'), 'w').close()
         if '2' in mode:
-            if not ONLY_REVIEWS:
-                open(os.path.join(cidade,'restaurantes.csv'), 'w').close()
+            open(os.path.join(cidade,'restaurantes.csv'), 'w').close()
             if 's' in mode and not UPDATE_REVIEWS:
                 open(os.path.join(cidade,'avaliacoes-restaurantes.csv'), 'w').close()
         if '3' in mode:
-            if not ONLY_REVIEWS:
-                open(os.path.join(cidade,'atracoes.csv'), 'w').close()
+            open(os.path.join(cidade,'atracoes.csv'), 'w').close()
             if 's' in mode and not UPDATE_REVIEWS:
                 open(os.path.join(cidade,'avaliacoes-atracoes.csv'), 'w').close()
 
+#Extrai as datas de avaliacao de um conjunto de review cards
 def extrai_datas(review_cards, tipo):
     datas = []
 
@@ -930,7 +926,8 @@ def extrai_datas(review_cards, tipo):
 
     return datas
 
-# Retorno a indice em review_urls que contem o ultimo comentario de year
+# Retorno a indice em review_urls que contem o ultimo comentario a ser coletado (determinado
+# pela constante COLLEECT_UNTIL)
 def binary_search(review_urls, tipo, low, high, index): 
   
     if high >= low: 
